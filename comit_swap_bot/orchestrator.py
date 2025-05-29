@@ -186,13 +186,13 @@ class SwapOrchestrator:
             # Get latest BTC/XMR rate from price service
             current_rate = await self.price_service.get_btc_to_xmr_rate()
             if current_rate:
-                incomplete_swap.exchange_rate = current_rate
-                incomplete_swap.amount_xmr = (
+                incomplete_swap.btc_xmr_rate = current_rate
+                incomplete_swap.xmr_amount = (
                     await self.price_service.convert_btc_to_xmr(
-                        incomplete_swap.amount_btc
+                        incomplete_swap.btc_amount
                     )
                 )
-                incomplete_swap.updated_at = datetime.now(timezone.utc)
+                incomplete_swap.last_updated = datetime.now(timezone.utc)
                 await self.swap_db.save_swap(incomplete_swap)
 
                 self.last_price_update = datetime.now(timezone.utc)
@@ -201,7 +201,7 @@ class SwapOrchestrator:
                     "💱 Added pricing data to swap",
                     swap_id=incomplete_swap.swap_id,
                     btc_xmr_rate=float(current_rate),
-                    xmr_amount=float(incomplete_swap.amount_xmr),
+                    xmr_amount=float(incomplete_swap.xmr_amount),
                 )
 
         except Exception as e:

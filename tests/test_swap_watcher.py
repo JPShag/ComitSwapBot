@@ -93,9 +93,9 @@ class TestSwapWatcher:
         # Verify swap was saved
         swap = await db.get_swap_by_lock_txid(txid)
         assert swap is not None
-        assert swap.lock_tx.txid == txid
-        assert swap.state == SwapState.LOCKED
-        assert swap.amount_btc == Decimal("0.1")
+        assert swap.lock_transaction.txid == txid
+        assert swap.current_state == SwapState.LOCKED
+        assert swap.btc_amount == Decimal("0.1")
 
     @pytest.mark.asyncio
     async def test_htlc_redeem_detection(self, watcher, db):
@@ -122,7 +122,7 @@ class TestSwapWatcher:
 
         # Add to pending HTLCs
         swap = await db.get_swap_by_lock_txid(lock_txid)
-        watcher._pending_htlcs[lock_txid] = swap.lock_tx
+        watcher._pending_htlcs[lock_txid] = swap.lock_transaction
 
         # Now simulate a redeem
         redeem_txid = "redeem456"
@@ -139,7 +139,7 @@ class TestSwapWatcher:
 
         # Verify swap was updated
         swap = await db.get_swap_by_lock_txid(lock_txid)
-        assert swap.state == SwapState.REDEEMED
-        assert swap.redeem_tx is not None
-        assert swap.redeem_tx.txid == redeem_txid
-        assert swap.redeem_tx.secret == "s" * 64
+        assert swap.current_state == SwapState.REDEEMED
+        assert swap.redeem_transaction is not None
+        assert swap.redeem_transaction.txid == redeem_txid
+        assert swap.redeem_transaction.revealed_secret == "s" * 64

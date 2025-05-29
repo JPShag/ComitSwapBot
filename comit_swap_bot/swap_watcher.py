@@ -241,14 +241,17 @@ class SwapWatcher:
             txid=txid,
             version=2,  # Will be updated with full tx data
             locktime=0,
-            size=0,
-            weight=0,
-            htlc_type=HTLCType.LOCK,
-            htlc_script=htlc_script,
-            amount_sats=amount_sats,
-            output_index=output_idx,
+            byte_size=0,
+            weight_units=0,
+            fee_sats=None,
             block_height=None,
-            confirmations=0,
+            block_time=None,
+            confirmation_count=0,
+            htlc_classification=HTLCType.LOCK,
+            script_details=htlc_script,
+            value_sats=amount_sats,
+            output_index=output_idx,
+            revealed_secret=None,
         )
 
         # Store in pending HTLCs
@@ -257,16 +260,21 @@ class SwapWatcher:
         # Create swap record
         swap = AtomicSwap(
             swap_id=f"{txid}:{output_idx}",
-            lock_tx=htlc_tx,
-            state=SwapState.LOCKED,
-            amount_btc=Decimal(amount_sats) / COIN,
-            created_at=datetime.now(timezone.utc),
-            updated_at=datetime.now(timezone.utc),
+            lock_transaction=htlc_tx,
+            redeem_transaction=None,
+            refund_transaction=None,
+            current_state=SwapState.LOCKED,
+            btc_amount=Decimal(amount_sats) / COIN,
+            xmr_amount=None,
+            btc_xmr_rate=None,
+            detected_at=datetime.now(timezone.utc),
+            last_updated=datetime.now(timezone.utc),
+            notification_sent=None,
         )
 
         await self.db.save_swap(swap)
         logger.info(
-            "Detected new HTLC", swap_id=swap.swap_id, amount_btc=swap.amount_btc
+            "Detected new HTLC", swap_id=swap.swap_id, amount_btc=swap.btc_amount
         )
 
     async def _handle_htlc_spend(
@@ -295,32 +303,43 @@ class SwapWatcher:
         swap = await self.db.get_swap_by_lock_txid(spent_txid)
         if swap:
             if htlc_type == HTLCType.REDEEM:
-                swap.state = SwapState.REDEEMED
-                swap.redeem_tx = HTLCTransaction(
+                swap.current_state = SwapState.REDEEMED
+                swap.redeem_transaction = HTLCTransaction(
                     txid=spending_txid,
                     version=2,
                     locktime=0,
-                    size=0,
-                    weight=0,
-                    htlc_type=HTLCType.REDEEM,
-                    amount_sats=htlc.amount_sats,
+                    byte_size=0,
+                    weight_units=0,
+                    fee_sats=None,
+                    block_height=None,
+                    block_time=None,
+                    confirmation_count=0,
+                    htlc_classification=HTLCType.REDEEM,
+                    script_details=None,
+                    value_sats=htlc.value_sats,
                     output_index=0,
-                    secret=secret,
+                    revealed_secret=secret,
                 )
             else:
-                swap.state = SwapState.REFUNDED
-                swap.refund_tx = HTLCTransaction(
+                swap.current_state = SwapState.REFUNDED
+                swap.refund_transaction = HTLCTransaction(
                     txid=spending_txid,
                     version=2,
                     locktime=0,
-                    size=0,
-                    weight=0,
-                    htlc_type=HTLCType.REFUND,
-                    amount_sats=htlc.amount_sats,
+                    byte_size=0,
+                    weight_units=0,
+                    fee_sats=None,
+                    block_height=None,
+                    block_time=None,
+                    confirmation_count=0,
+                    htlc_classification=HTLCType.REFUND,
+                    script_details=None,
+                    value_sats=htlc.value_sats,
                     output_index=0,
+                    revealed_secret=None,
                 )
 
-            swap.updated_at = datetime.now(timezone.utc)
+            swap.last_updated = datetime.now(timezone.utc)
             await self.db.save_swap(swap)
 
             logger.info(

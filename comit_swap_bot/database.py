@@ -92,17 +92,21 @@ class SwapDatabase:
         async with self.async_session() as session:
             record = SwapRecord(
                 swap_id=swap.swap_id,
-                lock_txid=swap.lock_tx.txid,
-                redeem_txid=swap.redeem_tx.txid if swap.redeem_tx else None,
-                refund_txid=swap.refund_tx.txid if swap.refund_tx else None,
-                state=swap.state.value,
-                amount_btc=swap.amount_btc,
-                amount_xmr=swap.amount_xmr,
-                exchange_rate=swap.exchange_rate,
-                created_at=swap.created_at,
-                updated_at=swap.updated_at,
-                tweet_id=swap.tweet_id,
-                data=swap.model_dump_json(),
+                lock_txid=swap.lock_transaction.txid,
+                redeem_txid=swap.redeem_transaction.txid
+                if swap.redeem_transaction
+                else None,
+                refund_txid=swap.refund_transaction.txid
+                if swap.refund_transaction
+                else None,
+                current_state=swap.current_state.value,
+                btc_amount=swap.btc_amount,
+                xmr_amount=swap.xmr_amount,
+                btc_xmr_rate=swap.btc_xmr_rate,
+                detected_at=swap.detected_at,
+                last_updated=swap.last_updated,
+                notification_sent=getattr(swap, "notification_sent", None),
+                full_swap_json=swap.model_dump_json(),
             )
 
             await session.merge(record)
@@ -113,14 +117,15 @@ class SwapDatabase:
         async with self.async_session() as session:
             result = await session.get(SwapRecord, swap_id)
             if result:
-                return AtomicSwap.model_validate_json(result.data)
+                return AtomicSwap.model_validate_json(result.full_swap_json)
             return None
 
     async def get_swap_by_lock_txid(self, txid: str) -> AtomicSwap | None:
         """Get a swap by its lock transaction ID."""
         async with self.async_session() as session:
             result = await session.execute(
-                text("SELECT data FROM swaps WHERE lock_txid = :txid"), {"txid": txid}
+                text("SELECT full_swap_json FROM atomic_swaps WHERE lock_txid = :txid"),
+                {"txid": txid},
             )
             row = result.first()
             if row:
@@ -131,7 +136,9 @@ class SwapDatabase:
         """Get all swaps in locked state."""
         async with self.async_session() as session:
             result = await session.execute(
-                text("SELECT data FROM swaps WHERE state = :state"),
+                text(
+                    "SELECT full_swap_json FROM atomic_swaps WHERE current_state = :state"
+                ),
                 {"state": SwapState.LOCKED.value},
             )
             return [AtomicSwap.model_validate_json(row[0]) for row in result]
@@ -140,7 +147,9 @@ class SwapDatabase:
         """Get recent swaps."""
         async with self.async_session() as session:
             result = await session.execute(
-                text("SELECT data FROM swaps ORDER BY created_at DESC LIMIT :limit"),
+                text(
+                    "SELECT full_swap_json FROM atomic_swaps ORDER BY detected_at DESC LIMIT :limit"
+                ),
                 {"limit": limit},
             )
             return [AtomicSwap.model_validate_json(row[0]) for row in result]
@@ -149,7 +158,9 @@ class SwapDatabase:
         """Update the tweet ID for a swap."""
         async with self.async_session() as session:
             await session.execute(
-                "UPDATE swaps SET tweet_id = :tweet_id WHERE swap_id = :swap_id",
+                text(
+                    "UPDATE atomic_swaps SET notification_sent = :tweet_id WHERE swap_id = :swap_id"
+                ),
                 {"tweet_id": tweet_id, "swap_id": swap_id},
             )
             await session.commit()

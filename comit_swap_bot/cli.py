@@ -103,10 +103,10 @@ def check(txid: str):
         if swap:
             click.echo(f"✓ Transaction {txid} is part of an atomic swap!")
             click.echo(f"  Swap ID: {swap.swap_id}")
-            click.echo(f"  State: {swap.state.value}")
-            click.echo(f"  Amount: {swap.amount_btc} BTC")
-            if swap.amount_xmr:
-                click.echo(f"  XMR Amount: {swap.amount_xmr} XMR")
+            click.echo(f"  State: {swap.current_state.value}")
+            click.echo(f"  Amount: {swap.btc_amount} BTC")
+            if swap.xmr_amount:
+                click.echo(f"  XMR Amount: {swap.xmr_amount} XMR")
         else:
             click.echo(f"✗ Transaction {txid} is not part of an atomic swap")
 
@@ -160,12 +160,12 @@ def list_swaps(limit: int):
 
         for swap in swaps:
             click.echo(f"Swap ID: {swap.swap_id}")
-            click.echo(f"  State: {swap.state.value}")
-            click.echo(f"  Amount: {swap.amount_btc} BTC")
-            if swap.amount_xmr:
-                click.echo(f"  XMR: {swap.amount_xmr} XMR")
-            click.echo(f"  Created: {swap.created_at}")
-            if swap.tweet_id:
+            click.echo(f"  State: {swap.current_state.value}")
+            click.echo(f"  Amount: {swap.btc_amount} BTC")
+            if swap.xmr_amount:
+                click.echo(f"  XMR: {swap.xmr_amount} XMR")
+            click.echo(f"  Created: {swap.detected_at}")
+            if hasattr(swap, "tweet_id") and swap.tweet_id:
                 click.echo(f"  Tweet: https://twitter.com/i/status/{swap.tweet_id}")
             click.echo()
 
