@@ -31,11 +31,6 @@ jobs:
         ruff check comit_swap_bot tests --output-format=github
         ruff format --check comit_swap_bot tests
     
-    - name: Format check with black (optional - ruff also handles formatting)
-      run: |
-        black --check comit_swap_bot tests
-      continue-on-error: true
-    
     - name: Sort imports with isort
       run: |
         isort --check-only comit_swap_bot tests
