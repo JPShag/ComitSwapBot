@@ -1,9 +1,11 @@
+
 """Command-line interface for the swap bot."""
 
 import asyncio
 import signal
 import sys
-from datetime import datetime
+
+
 
 import click
 import structlog
@@ -17,7 +19,7 @@ from .orchestrator import SwapOrchestrator
 from .price_fetcher import PriceFetcher
 from .swap_watcher import SwapWatcher
 
-# Configure structured logging
+
 structlog.configure(
     processors=[
         structlog.stdlib.filter_by_level,

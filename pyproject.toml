@@ -1,3 +1,7 @@
+[lint]
+ignore = ["F401", "UP007", "UP035"]
+select = ["E", "W", "C"]
+mccabe = 10
 [build-system]
 requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"

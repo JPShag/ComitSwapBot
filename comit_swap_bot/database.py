@@ -6,9 +6,8 @@ The schema has evolved over time as I discovered edge cases - initially
 didn't account for partial redemptions or multiple refund attempts.
 """
 
-import json
-from datetime import datetime
-from typing import Any, Dict, List, Optional
+
+from typing import Any, Optional
 
 import aiosqlite
 import structlog
@@ -142,7 +141,7 @@ class SwapDatabase:
                 return AtomicSwap.model_validate_json(row[0])
             return None
 
-    async def get_pending_swaps(self) -> List[AtomicSwap]:
+    async def get_pending_swaps(self) -> list[AtomicSwap]:
         """Get all swaps in locked state."""
         async with self.async_session() as session:
             result = await session.execute(
@@ -151,7 +150,7 @@ class SwapDatabase:
             )
             return [AtomicSwap.model_validate_json(row[0]) for row in result]
 
-    async def get_recent_swaps(self, limit: int = 10) -> List[AtomicSwap]:
+    async def get_recent_swaps(self, limit: int = 10) -> list[AtomicSwap]:
         """Get recent swaps."""
         async with self.async_session() as session:
             result = await session.execute(

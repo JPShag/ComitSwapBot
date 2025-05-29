@@ -112,39 +112,8 @@ class SwapWatcher:
                 ) as ws:
                     logger.info("Connected to Mempool WebSocket")
                     retry_count = 0  # Reset on successful connection
-
-                    # Subscribe to both mempool transactions and blocks
-                    await ws.send(
-                        json.dumps(
-                            {
-                                "action": "want",
-                                "data": ["mempool-blocks", "live-2h-chart"],
-                            }
-                        )
-                    )
-
-                    while self.watching:
-                        try:
-                            message = await asyncio.wait_for(ws.recv(), timeout=30)
-                            data = json.loads(message)
-
-                            # Process mempool blocks (contains new transactions)
-                            if data.get("mempool-blocks"):
-                                for block in data["mempool-blocks"]:
-                                    for tx in block.get("transactions", []):
-                                        await self._process_transaction(tx["txid"])
-
-                            # Process individual transactions from live feed
-                            elif data.get("tx"):
-                                await self._process_transaction(data["tx"]["txid"])
-
-                        except asyncio.TimeoutError:
-                            # Send ping to keep connection alive
-                            await ws.ping()
-                        except websockets.exceptions.ConnectionClosed:
-                            logger.warning("WebSocket connection closed, will retry")
-                            break
-
+                    await self._subscribe_mempool_ws(ws)
+                    await self._handle_mempool_ws_messages(ws)
             except Exception as e:
                 retry_count += 1
                 logger.error(
@@ -153,11 +122,50 @@ class SwapWatcher:
                     retry_count=retry_count,
                     max_retries=max_retries,
                 )
-                if retry_count < max_retries:
-                    await asyncio.sleep(min(5 * retry_count, 30))  # Exponential backoff
-                else:
-                    logger.error("Max WebSocket retries exceeded, stopping watcher")
-                    self.watching = False
+                await self._handle_ws_retry(retry_count, max_retries)
+
+    async def _subscribe_mempool_ws(self, ws):
+        """Send subscription message to Mempool WebSocket."""
+        await ws.send(
+            json.dumps(
+                {
+                    "action": "want",
+                    "data": ["mempool-blocks", "live-2h-chart"],
+                }
+            )
+        )
+
+    async def _handle_mempool_ws_messages(self, ws):
+        """Process incoming messages from Mempool WebSocket."""
+        while self.watching:
+            try:
+                message = await asyncio.wait_for(ws.recv(), timeout=30)
+                data = json.loads(message)
+                await self._process_mempool_ws_data(data)
+            except asyncio.TimeoutError:
+                await ws.ping()
+            except websockets.exceptions.ConnectionClosed:
+                logger.warning("WebSocket connection closed, will retry")
+                break
+
+    async def _process_mempool_ws_data(self, data):
+        """Process a single message from the Mempool WebSocket feed."""
+        # Process mempool blocks (contains new transactions)
+        if data.get("mempool-blocks"):
+            for block in data["mempool-blocks"]:
+                for tx in block.get("transactions", []):
+                    await self._process_transaction(tx["txid"])
+        # Process individual transactions from live feed
+        elif data.get("tx"):
+            await self._process_transaction(data["tx"]["txid"])
+
+    async def _handle_ws_retry(self, retry_count, max_retries):
+        """Handle retry logic for WebSocket connection."""
+        if retry_count < max_retries:
+            await asyncio.sleep(min(5 * retry_count, 30))  # Exponential backoff
+        else:
+            logger.error("Max WebSocket retries exceeded, stopping watcher")
+            self.watching = False
 
     async def _watch_bitcoin_rpc(self):
         """Watch for transactions using Bitcoin RPC."""
