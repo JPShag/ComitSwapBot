@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  swapbot:
+    build: .
+    container_name: comit-swap-bot
+    restart: unless-stopped
+    ports:
+      - "8080:8080"  # Health check endpoint
+    environment:
+      # Bitcoin Configuration
+      - USE_MEMPOOL_API=true
+      - MEMPOOL_API_URL=https://mempool.space/api
+      
+      # Twitter Configuration (set these in .env file)
+      - TWITTER_API_KEY=${TWITTER_API_KEY}
+      - TWITTER_API_SECRET=${TWITTER_API_SECRET}
+      - TWITTER_ACCESS_TOKEN=${TWITTER_ACCESS_TOKEN}
+      - TWITTER_ACCESS_TOKEN_SECRET=${TWITTER_ACCESS_TOKEN_SECRET}
+      
+      # Optional CoinGecko API key
+      - COINGECKO_API_KEY=${COINGECKO_API_KEY:-}
+      
+      # Logging
+      - LOG_LEVEL=INFO
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    volumes:
+      - ./data:/app/data
+    networks:
+      - swapbot-network
+
+  # Optional: Local Bitcoin node
+  # bitcoin:
+  #   image: ruimarinho/bitcoin-core:latest
+  #   container_name: bitcoin-node
+  #   restart: unless-stopped
+  #   ports:
+  #     - "8332:8332"
+  #   volumes:
+  #     - bitcoin-data:/home/bitcoin/.bitcoin
+  #   command: >
+  #     -regtest
+  #     -server
+  #     -rpcuser=swapbot
+  #     -rpcpassword=swapbot123
+  #     -rpcallowip=0.0.0.0/0
+  #     -rpcbind=0.0.0.0
+  #   networks:
+  #     - swapbot-network
+
+networks:
+  swapbot-network:
+    driver: bridge
+
+volumes:
+  bitcoin-data:

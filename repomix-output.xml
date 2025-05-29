@@ -1,0 +1,2531 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+<additional_info>
+
+</additional_info>
+
+</file_summary>
+
+<directory_structure>
+.github/workflows/ci.yml
+.github/workflows/release.yml
+.gitignore
+.pre-commit-config.yaml
+comit_swap_bot/__init__.py
+comit_swap_bot/__main__.py
+comit_swap_bot/cli.py
+comit_swap_bot/config.py
+comit_swap_bot/database.py
+comit_swap_bot/health.py
+comit_swap_bot/models.py
+comit_swap_bot/notifiers.py
+comit_swap_bot/orchestrator.py
+comit_swap_bot/price_fetcher.py
+comit_swap_bot/swap_watcher.py
+DEPLOYMENT.md
+docker-compose.yml
+Dockerfile
+LICENSE
+pyproject.toml
+README.md
+requirements.txt
+setup.py
+tests/test_notifiers.py
+tests/test_price_fetcher.py
+tests/test_swap_watcher.py
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path=".github/workflows/ci.yml">
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.12"]
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e ".[dev]"
+    
+    - name: Lint with flake8
+      run: |
+        flake8 comit_swap_bot tests --count --select=E9,F63,F7,F82 --show-source --statistics
+        flake8 comit_swap_bot tests --count --exit-zero --max-complexity=10 --max-line-length=88 --statistics
+    
+    - name: Format check with black
+      run: |
+        black --check comit_swap_bot tests
+    
+    - name: Sort imports with isort
+      run: |
+        isort --check-only comit_swap_bot tests
+    
+    - name: Type check with mypy
+      run: |
+        mypy comit_swap_bot
+    
+    - name: Test with pytest
+      run: |
+        pytest tests -v --cov=comit_swap_bot --cov-report=xml --cov-report=html
+    
+    - name: Upload coverage reports
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+
+  docker:
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name == 'push'
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    
+    - name: Log in to GitHub Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        push: true
+        tags: |
+          ghcr.io/${{ github.repository_owner }}/comit-swap-bot:latest
+          ghcr.io/${{ github.repository_owner }}/comit-swap-bot:${{ github.sha }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+</file>
+
+<file path=".github/workflows/release.yml">
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install build twine
+    
+    - name: Build package
+      run: python -m build
+    
+    - name: Publish to PyPI
+      env:
+        TWINE_USERNAME: __token__
+        TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+      run: |
+        twine upload dist/*
+    
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: dist/*
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+</file>
+
+<file path=".gitignore">
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# Translations
+*.mo
+*.pot
+
+# Django stuff:
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# Flask stuff:
+instance/
+.webassets-cache
+
+# Scrapy stuff:
+.scrapy
+
+# Sphinx documentation
+docs/_build/
+
+# PyBuilder
+.pybuilder/
+target/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+.python-version
+
+# pipenv
+Pipfile.lock
+
+# poetry
+poetry.lock
+
+# pdm
+.pdm.toml
+
+# PEP 582
+__pypackages__/
+
+# Celery stuff
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath parsed files
+*.sage.py
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# pytype static type analyzer
+.pytype/
+
+# Cython debug symbols
+cython_debug/
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Project specific
+data/
+swaps.db
+*.db
+.DS_Store
+</file>
+
+<file path=".pre-commit-config.yaml">
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+      - id: check-json
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: debug-statements
+
+  - repo: https://github.com/psf/black
+    rev: 24.1.1
+    hooks:
+      - id: black
+        language_version: python3.12
+
+  - repo: https://github.com/PyCQA/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+        args: ["--profile", "black"]
+
+  - repo: https://github.com/PyCQA/flake8
+    rev: 7.0.0
+    hooks:
+      - id: flake8
+        args: ["--max-line-length=88", "--extend-ignore=E203,W503"]
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.8.0
+    hooks:
+      - id: mypy
+        additional_dependencies: [types-all]
+</file>
+
+<file path="comit_swap_bot/__init__.py">
+"""COMIT Swap Bot - Detecting BTC⇆XMR atomic swaps."""
+
+__version__ = "1.0.0"
+__author__ = "JPShag"
+__email__ = "jpshag@example.com"
+
+from .swap_watcher import SwapWatcher
+from .notifiers import TwitterNotifier, AppriseNotifier
+from .price_fetcher import PriceFetcher
+
+__all__ = ["SwapWatcher", "TwitterNotifier", "AppriseNotifier", "PriceFetcher"]
+</file>
+
+<file path="comit_swap_bot/__main__.py">
+"""Main entry point for the comit_swap_bot package."""
+
+from .cli import cli
+
+if __name__ == "__main__":
+    cli()
+</file>
+
+<file path="comit_swap_bot/cli.py">
+"""Command-line interface for the swap bot."""
+
+import asyncio
+import signal
+import sys
+from datetime import datetime
+
+import click
+import structlog
+from structlog.stdlib import LoggerFactory
+
+from . import __version__
+from .config import config
+from .database import Database
+from .swap_watcher import SwapWatcher
+from .price_fetcher import PriceFetcher
+from .notifiers import NotificationManager
+from .orchestrator import SwapOrchestrator
+
+# Configure structured logging
+structlog.configure(
+    processors=[
+        structlog.stdlib.filter_by_level,
+        structlog.stdlib.add_logger_name,
+        structlog.stdlib.add_log_level,
+        structlog.stdlib.PositionalArgumentsFormatter(),
+        structlog.processors.TimeStamper(fmt="iso"),
+        structlog.processors.StackInfoRenderer(),
+        structlog.processors.format_exc_info,
+        structlog.dev.ConsoleRenderer()
+    ],
+    context_class=dict,
+    logger_factory=LoggerFactory(),
+    cache_logger_on_first_use=True,
+)
+
+logger = structlog.get_logger()
+
+
+@click.group()
+@click.version_option(version=__version__)
+def cli():
+    """COMIT Swap Bot - Detecting BTC⇆XMR atomic swaps."""
+    pass
+
+
+@cli.command()
+@click.option(
+    "--check-interval",
+    default=config.check_interval,
+    help="Interval in seconds between checks"
+)
+def watch(check_interval: int):
+    """Watch for new atomic swaps in real-time."""
+    logger.info("Starting swap bot", version=__version__)
+    
+    async def run():
+        # Initialize components
+        db = Database()
+        await db.init()
+        
+        watcher = SwapWatcher(db)
+        price_fetcher = PriceFetcher()
+        notifier = NotificationManager()
+        
+        orchestrator = SwapOrchestrator(
+            watcher=watcher,
+            price_fetcher=price_fetcher,
+            notifier=notifier,
+            database=db
+        )
+        
+        # Setup signal handlers
+        loop = asyncio.get_event_loop()
+        
+        def signal_handler(sig):
+            logger.info("Received signal, shutting down", signal=sig)
+            loop.create_task(orchestrator.stop())
+            
+        for sig in (signal.SIGTERM, signal.SIGINT):
+            loop.add_signal_handler(sig, lambda s=sig: signal_handler(s))
+            
+        # Start watching
+        try:
+            await orchestrator.start()
+        except Exception as e:
+            logger.error("Fatal error", error=str(e), exc_info=True)
+            sys.exit(1)
+        finally:
+            await db.close()
+            await price_fetcher.close()
+            
+    asyncio.run(run())
+
+
+@cli.command()
+@click.option("--txid", required=True, help="Transaction ID to check")
+def check(txid: str):
+    """Check if a specific transaction is part of an atomic swap."""
+    async def run():
+        db = Database()
+        await db.init()
+        
+        watcher = SwapWatcher(db)
+        swap = await watcher.check_transaction(txid)
+        
+        if swap:
+            click.echo(f"✓ Transaction {txid} is part of an atomic swap!")
+            click.echo(f"  Swap ID: {swap.swap_id}")
+            click.echo(f"  State: {swap.state.value}")
+            click.echo(f"  Amount: {swap.amount_btc} BTC")
+            if swap.amount_xmr:
+                click.echo(f"  XMR Amount: {swap.amount_xmr} XMR")
+        else:
+            click.echo(f"✗ Transaction {txid} is not part of an atomic swap")
+            
+        await db.close()
+        
+    asyncio.run(run())
+
+
+@cli.command()
+@click.option("--start-height", required=True, type=int, help="Starting block height")
+@click.option("--end-height", required=True, type=int, help="Ending block height")
+def backfill(start_height: int, end_height: int):
+    """Backfill historical swaps between block heights."""
+    async def run():
+        db = Database()
+        await db.init()
+        
+        watcher = SwapWatcher(db)
+        price_fetcher = PriceFetcher()
+        notifier = NotificationManager()
+        
+        orchestrator = SwapOrchestrator(
+            watcher=watcher,
+            price_fetcher=price_fetcher,
+            notifier=notifier,
+            database=db
+        )
+        
+        await orchestrator.backfill(start_height, end_height)
+        
+        await db.close()
+        await price_fetcher.close()
+        
+    asyncio.run(run())
+
+
+@cli.command()
+@click.option("--limit", default=10, help="Number of swaps to show")
+def list_swaps(limit: int):
+    """List recent atomic swaps."""
+    async def run():
+        db = Database()
+        await db.init()
+        
+        swaps = await db.get_recent_swaps(limit)
+        
+        if not swaps:
+            click.echo("No swaps found")
+            return
+            
+        click.echo(f"Recent {len(swaps)} swaps:\n")
+        
+        for swap in swaps:
+            click.echo(f"Swap ID: {swap.swap_id}")
+            click.echo(f"  State: {swap.state.value}")
+            click.echo(f"  Amount: {swap.amount_btc} BTC")
+            if swap.amount_xmr:
+                click.echo(f"  XMR: {swap.amount_xmr} XMR")
+            click.echo(f"  Created: {swap.created_at}")
+            if swap.tweet_id:
+                click.echo(f"  Tweet: https://twitter.com/i/status/{swap.tweet_id}")
+            click.echo()
+            
+        await db.close()
+        
+    asyncio.run(run())
+
+
+def main():
+    """Main entry point."""
+    cli()
+
+
+if __name__ == "__main__":
+    main()
+</file>
+
+<file path="comit_swap_bot/config.py">
+"""Configuration management for the swap bot."""
+
+from typing import Optional
+from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import Field, validator
+
+
+class Config(BaseSettings):
+    """Application configuration."""
+    
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=False,
+    )
+    
+    # Bitcoin Configuration
+    bitcoin_rpc_url: str = Field(
+        default="http://localhost:8332",
+        description="Bitcoin RPC URL"
+    )
+    bitcoin_rpc_user: Optional[str] = Field(
+        default=None,
+        description="Bitcoin RPC username"
+    )
+    bitcoin_rpc_pass: Optional[str] = Field(
+        default=None,
+        description="Bitcoin RPC password"
+    )
+    
+    # Mempool API Configuration
+    use_mempool_api: bool = Field(
+        default=True,
+        description="Use Mempool.space API instead of Bitcoin RPC"
+    )
+    mempool_api_url: str = Field(
+        default="https://mempool.space/api",
+        description="Mempool.space API URL"
+    )
+    mempool_ws_url: str = Field(
+        default="wss://mempool.space/api/v1/ws",
+        description="Mempool.space WebSocket URL"
+    )
+    
+    # Twitter Configuration
+    twitter_api_key: Optional[str] = Field(
+        default=None,
+        description="Twitter API Key"
+    )
+    twitter_api_secret: Optional[str] = Field(
+        default=None,
+        description="Twitter API Secret"
+    )
+    twitter_access_token: Optional[str] = Field(
+        default=None,
+        description="Twitter Access Token"
+    )
+    twitter_access_token_secret: Optional[str] = Field(
+        default=None,
+        description="Twitter Access Token Secret"
+    )
+    
+    # CoinGecko Configuration
+    coingecko_api_key: Optional[str] = Field(
+        default=None,
+        description="CoinGecko API Key (optional, for higher rate limits)"
+    )
+    coingecko_api_url: str = Field(
+        default="https://api.coingecko.com/api/v3",
+        description="CoinGecko API URL"
+    )
+    
+    # Database Configuration
+    database_url: str = Field(
+        default="sqlite+aiosqlite:///swaps.db",
+        description="Database URL for storing swap history"
+    )
+    
+    # Application Configuration
+    log_level: str = Field(
+        default="INFO",
+        description="Logging level"
+    )
+    check_interval: int = Field(
+        default=10,
+        description="Interval in seconds between checks"
+    )
+    max_retries: int = Field(
+        default=3,
+        description="Maximum number of retries for failed operations"
+    )
+    
+    # Notification Configuration
+    enable_twitter: bool = Field(
+        default=True,
+        description="Enable Twitter notifications"
+    )
+    enable_apprise: bool = Field(
+        default=False,
+        description="Enable Apprise notifications"
+    )
+    apprise_urls: list[str] = Field(
+        default_factory=list,
+        description="List of Apprise notification URLs"
+    )
+    
+    @validator("twitter_api_key", "twitter_api_secret", 
+               "twitter_access_token", "twitter_access_token_secret")
+    def validate_twitter_config(cls, v, values):
+        """Validate Twitter configuration."""
+        if values.get("enable_twitter") and not v:
+            raise ValueError("Twitter credentials required when Twitter is enabled")
+        return v
+
+
+# Global config instance
+config = Config()
+</file>
+
+<file path="comit_swap_bot/database.py">
+"""Database operations for swap storage."""
+
+import json
+from datetime import datetime
+from typing import Optional, List, Dict, Any
+
+import aiosqlite
+import structlog
+from sqlalchemy import (
+    Column, String, Integer, DateTime, 
+    Numeric, Text, Boolean, Index, text
+)
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
+
+from .config import config
+from .models import AtomicSwap, HTLCTransaction, SwapState
+
+logger = structlog.get_logger()
+Base = declarative_base()
+
+
+class SwapRecord(Base):
+    """Database model for atomic swaps."""
+    
+    __tablename__ = "swaps"
+    
+    swap_id = Column(String, primary_key=True)
+    lock_txid = Column(String, nullable=False, index=True)
+    redeem_txid = Column(String, nullable=True)
+    refund_txid = Column(String, nullable=True)
+    state = Column(String, nullable=False)
+    amount_btc = Column(Numeric(16, 8), nullable=False)
+    amount_xmr = Column(Numeric(16, 8), nullable=True)
+    exchange_rate = Column(Numeric(16, 8), nullable=True)
+    created_at = Column(DateTime, nullable=False)
+    updated_at = Column(DateTime, nullable=False)
+    tweet_id = Column(String, nullable=True)
+    data = Column(Text, nullable=False)  # JSON serialized full swap data
+    
+    __table_args__ = (
+        Index("idx_created_at", "created_at"),
+        Index("idx_state", "state"),
+    )
+
+
+class Database:
+    """Database manager for swap storage."""
+    
+    def __init__(self):
+        """Initialize database connection."""
+        self.engine = create_async_engine(
+            config.database_url,
+            echo=False,
+            pool_pre_ping=True
+        )
+        self.async_session = sessionmaker(
+            self.engine,
+            class_=AsyncSession,
+            expire_on_commit=False
+        )
+        
+    async def init(self):
+        """Initialize database schema."""
+        async with self.engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        logger.info("Database initialized")
+        
+    async def close(self):
+        """Close database connection."""
+        await self.engine.dispose()
+        
+    async def save_swap(self, swap: AtomicSwap):
+        """Save or update a swap record."""
+        async with self.async_session() as session:
+            record = SwapRecord(
+                swap_id=swap.swap_id,
+                lock_txid=swap.lock_tx.txid,
+                redeem_txid=swap.redeem_tx.txid if swap.redeem_tx else None,
+                refund_txid=swap.refund_tx.txid if swap.refund_tx else None,
+                state=swap.state.value,
+                amount_btc=swap.amount_btc,
+                amount_xmr=swap.amount_xmr,
+                exchange_rate=swap.exchange_rate,
+                created_at=swap.created_at,
+                updated_at=swap.updated_at,
+                tweet_id=swap.tweet_id,
+                data=swap.model_dump_json()
+            )
+            
+            await session.merge(record)
+            await session.commit()
+            
+    async def get_swap(self, swap_id: str) -> Optional[AtomicSwap]:
+        """Get a swap by ID."""
+        async with self.async_session() as session:
+            result = await session.get(SwapRecord, swap_id)
+            if result:
+                return AtomicSwap.model_validate_json(result.data)
+            return None
+            
+    async def get_swap_by_lock_txid(self, txid: str) -> Optional[AtomicSwap]:
+        """Get a swap by its lock transaction ID."""
+        async with self.async_session() as session:
+            result = await session.execute(
+                text("SELECT data FROM swaps WHERE lock_txid = :txid"),
+                {"txid": txid}
+            )
+            row = result.first()
+            if row:
+                return AtomicSwap.model_validate_json(row[0])
+            return None
+            
+    async def get_pending_swaps(self) -> List[AtomicSwap]:
+        """Get all swaps in locked state."""
+        async with self.async_session() as session:
+            result = await session.execute(
+                text("SELECT data FROM swaps WHERE state = :state"),
+                {"state": SwapState.LOCKED.value}
+            )
+            return [
+                AtomicSwap.model_validate_json(row[0])
+                for row in result
+            ]
+            
+    async def get_recent_swaps(self, limit: int = 10) -> List[AtomicSwap]:
+        """Get recent swaps."""
+        async with self.async_session() as session:
+            result = await session.execute(
+                text("SELECT data FROM swaps ORDER BY created_at DESC LIMIT :limit"),
+                {"limit": limit}
+            )
+            return [
+                AtomicSwap.model_validate_json(row[0])
+                for row in result
+            ]
+            
+    async def update_tweet_id(self, swap_id: str, tweet_id: str):
+        """Update the tweet ID for a swap."""
+        async with self.async_session() as session:
+            await session.execute(
+                "UPDATE swaps SET tweet_id = :tweet_id WHERE swap_id = :swap_id",
+                {"tweet_id": tweet_id, "swap_id": swap_id}
+            )
+            await session.commit()
+</file>
+
+<file path="comit_swap_bot/health.py">
+"""Simple health check HTTP server."""
+
+import asyncio
+import json
+from datetime import datetime
+from typing import Dict, Any
+
+from aiohttp import web
+import structlog
+
+logger = structlog.get_logger()
+
+
+class HealthServer:
+    """Simple HTTP server for health checks."""
+    
+    def __init__(self, port: int = 8080):
+        """Initialize health server."""
+        self.port = port
+        self.app = web.Application()
+        self.app.router.add_get('/health', self.health_handler)
+        self.app.router.add_get('/status', self.status_handler)
+        self.runner = None
+        self.site = None
+        self._status_data: Dict[str, Any] = {}
+        
+    async def health_handler(self, request):
+        """Handle health check requests."""
+        return web.json_response({
+            "status": "healthy",
+            "timestamp": datetime.utcnow().isoformat(),
+            "service": "comit-swap-bot"
+        })
+        
+    async def status_handler(self, request):
+        """Handle detailed status requests."""
+        return web.json_response({
+            "status": "running",
+            "timestamp": datetime.utcnow().isoformat(),
+            "service": "comit-swap-bot",
+            **self._status_data
+        })
+        
+    def update_status(self, **kwargs):
+        """Update status data."""
+        self._status_data.update(kwargs)
+        
+    async def start(self):
+        """Start the health server."""
+        try:
+            self.runner = web.AppRunner(self.app)
+            await self.runner.setup()
+            self.site = web.TCPSite(self.runner, '0.0.0.0', self.port)
+            await self.site.start()
+            logger.info("Health server started", port=self.port)
+        except Exception as e:
+            logger.error("Failed to start health server", error=str(e))
+            
+    async def stop(self):
+        """Stop the health server."""
+        if self.site:
+            await self.site.stop()
+        if self.runner:
+            await self.runner.cleanup()
+        logger.info("Health server stopped")
+</file>
+
+<file path="comit_swap_bot/models.py">
+"""Data models for atomic swap detection."""
+
+from datetime import datetime
+from decimal import Decimal
+from enum import Enum
+from typing import Optional, List
+from pydantic import BaseModel, Field
+
+
+class SwapState(str, Enum):
+    """State of an atomic swap."""
+    LOCKED = "locked"
+    REDEEMED = "redeemed"
+    REFUNDED = "refunded"
+    EXPIRED = "expired"
+
+
+class HTLCType(str, Enum):
+    """Type of HTLC transaction."""
+    LOCK = "lock"
+    REDEEM = "redeem"
+    REFUND = "refund"
+
+
+class HTLCScript(BaseModel):
+    """HTLC script components."""
+    recipient_pubkey_hash: str
+    sender_pubkey_hash: str
+    secret_hash: str
+    timelock: int
+    
+    
+class Transaction(BaseModel):
+    """Bitcoin transaction model."""
+    txid: str
+    version: int
+    locktime: int
+    size: int
+    weight: int
+    fee: Optional[Decimal] = None
+    block_height: Optional[int] = None
+    block_time: Optional[datetime] = None
+    confirmations: int = 0
+    
+
+class HTLCTransaction(Transaction):
+    """HTLC-specific transaction."""
+    htlc_type: HTLCType
+    htlc_script: Optional[HTLCScript] = None
+    amount_sats: int
+    output_index: int
+    secret: Optional[str] = None  # For redeem transactions
+    
+
+class AtomicSwap(BaseModel):
+    """Complete atomic swap record."""
+    swap_id: str = Field(description="Unique identifier for the swap")
+    lock_tx: HTLCTransaction
+    redeem_tx: Optional[HTLCTransaction] = None
+    refund_tx: Optional[HTLCTransaction] = None
+    state: SwapState
+    amount_btc: Decimal
+    amount_xmr: Optional[Decimal] = None
+    exchange_rate: Optional[Decimal] = None
+    created_at: datetime
+    updated_at: datetime
+    tweet_id: Optional[str] = None
+    
+    class Config:
+        """Pydantic configuration."""
+        json_encoders = {
+            datetime: lambda v: v.isoformat(),
+            Decimal: lambda v: str(v),
+        }
+
+
+class SwapNotification(BaseModel):
+    """Notification data for a detected swap."""
+    swap: AtomicSwap
+    message: str
+    hashtags: List[str] = Field(
+        default_factory=lambda: ["AtomicSwap", "Bitcoin", "Monero", "COMIT"]
+    )
+</file>
+
+<file path="comit_swap_bot/notifiers.py">
+"""Notification system for detected swaps."""
+
+import asyncio
+from abc import ABC, abstractmethod
+from datetime import datetime
+from typing import Optional, List, Dict, Any
+
+import structlog
+import tweepy
+from apprise import Apprise
+
+from .config import config
+from .models import AtomicSwap, SwapNotification
+
+logger = structlog.get_logger()
+
+
+class Notifier(ABC):
+    """Base class for swap notifiers."""
+    
+    @abstractmethod
+    async def notify(self, notification: SwapNotification) -> bool:
+        """Send a notification about a detected swap."""
+        pass
+        
+    def format_swap_message(self, swap: AtomicSwap) -> str:
+        """Format a swap into a notification message."""
+        message_parts = [
+            "🔄 New BTC⇆XMR Atomic Swap!",
+            "",
+            f"📦 TX: {swap.lock_tx.txid[:16]}...",
+            f"💰 Amount: {swap.amount_btc:.8f} BTC",
+        ]
+        
+        if swap.amount_xmr and swap.exchange_rate:
+            message_parts.append(f"   ≈ {swap.amount_xmr:.4f} XMR")
+            message_parts.append(f"📊 Rate: 1 BTC = {swap.exchange_rate:.4f} XMR")
+            
+        message_parts.extend([
+            f"🕐 {swap.created_at.strftime('%Y-%m-%d %H:%M:%S')} UTC",
+            "",
+            " ".join(f"#{tag}" for tag in ["AtomicSwap", "Bitcoin", "Monero"])
+        ])
+        
+        return "\n".join(message_parts)
+
+
+class TwitterNotifier(Notifier):
+    """Twitter notification handler."""
+    
+    def __init__(self):
+        """Initialize Twitter client."""
+        if not all([
+            config.twitter_api_key,
+            config.twitter_api_secret,
+            config.twitter_access_token,
+            config.twitter_access_token_secret
+        ]):
+            raise ValueError("Twitter credentials not configured")
+            
+        # Initialize v2 client for tweeting
+        self.client = tweepy.Client(
+            consumer_key=config.twitter_api_key,
+            consumer_secret=config.twitter_api_secret,
+            access_token=config.twitter_access_token,
+            access_token_secret=config.twitter_access_token_secret
+        )
+        
+    async def notify(self, notification: SwapNotification) -> bool:
+        """Tweet about a detected swap."""
+        try:
+            # Format message
+            message = self.format_swap_message(notification.swap)
+            
+            # Ensure message fits Twitter's character limit
+            if len(message) > 280:
+                # Truncate transaction ID if needed
+                message = message.replace(
+                    notification.swap.lock_tx.txid[:16],
+                    notification.swap.lock_tx.txid[:12]
+                )
+                
+            # Tweet in a thread-safe way
+            loop = asyncio.get_event_loop()
+            response = await loop.run_in_executor(
+                None,
+                self.client.create_tweet,
+                message
+            )
+            
+            tweet_id = response.data["id"]
+            logger.info(
+                "Tweeted swap notification",
+                swap_id=notification.swap.swap_id,
+                tweet_id=tweet_id
+            )
+            
+            return True
+            
+        except Exception as e:
+            logger.error(
+                "Failed to tweet",
+                swap_id=notification.swap.swap_id,
+                error=str(e)
+            )
+            return False
+
+
+class AppriseNotifier(Notifier):
+    """Multi-platform notification handler using Apprise."""
+    
+    def __init__(self, urls: Optional[List[str]] = None):
+        """Initialize Apprise with notification URLs."""
+        self.apprise = Apprise()
+        
+        urls = urls or config.apprise_urls
+        for url in urls:
+            self.apprise.add(url)
+            
+        if not self.apprise.urls():
+            logger.warning("No Apprise URLs configured")
+            
+    async def notify(self, notification: SwapNotification) -> bool:
+        """Send notification via Apprise."""
+        try:
+            message = self.format_swap_message(notification.swap)
+            title = "New BTC⇆XMR Atomic Swap Detected!"
+            
+            # Run in executor to avoid blocking
+            loop = asyncio.get_event_loop()
+            result = await loop.run_in_executor(
+                None,
+                self.apprise.notify,
+                message,
+                title
+            )
+            
+            if result:
+                logger.info(
+                    "Sent Apprise notification",
+                    swap_id=notification.swap.swap_id
+                )
+            else:
+                logger.warning(
+                    "Apprise notification failed",
+                    swap_id=notification.swap.swap_id
+                )
+                
+            return result
+            
+        except Exception as e:
+            logger.error(
+                "Apprise error",
+                swap_id=notification.swap.swap_id,
+                error=str(e)
+            )
+            return False
+
+
+class ConsoleNotifier(Notifier):
+    """Simple console output notifier for testing."""
+    
+    async def notify(self, notification: SwapNotification) -> bool:
+        """Print notification to console."""
+        print("\n" + "="*60)
+        print(self.format_swap_message(notification.swap))
+        print("="*60 + "\n")
+        return True
+
+
+class NotificationManager:
+    """Manages multiple notifiers."""
+    
+    def __init__(self):
+        """Initialize notification manager."""
+        self.notifiers: List[Notifier] = []
+        
+        # Add configured notifiers
+        if config.enable_twitter:
+            try:
+                self.notifiers.append(TwitterNotifier())
+            except Exception as e:
+                logger.error("Failed to initialize Twitter notifier", error=str(e))
+                
+        if config.enable_apprise:
+            self.notifiers.append(AppriseNotifier())
+            
+        # Always add console notifier for visibility
+        self.notifiers.append(ConsoleNotifier())
+        
+    async def notify_swap(self, swap: AtomicSwap):
+        """Notify all configured notifiers about a swap."""
+        notification = SwapNotification(
+            swap=swap,
+            message=f"Detected atomic swap: {swap.swap_id}"
+        )
+        
+        # Send notifications concurrently
+        tasks = [
+            notifier.notify(notification)
+            for notifier in self.notifiers
+        ]
+        
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        
+        success_count = sum(
+            1 for r in results 
+            if isinstance(r, bool) and r
+        )
+        
+        logger.info(
+            "Sent notifications",
+            swap_id=swap.swap_id,
+            success_count=success_count,
+            total_count=len(self.notifiers)
+        )
+</file>
+
+<file path="comit_swap_bot/orchestrator.py">
+"""Main orchestration logic for the swap bot."""
+
+import asyncio
+from datetime import datetime, timezone
+from typing import Optional
+
+import structlog
+
+from .swap_watcher import SwapWatcher
+from .price_fetcher import PriceFetcher
+from .notifiers import NotificationManager
+from .database import Database
+from .models import AtomicSwap, SwapState
+from .health import HealthServer
+
+logger = structlog.get_logger()
+
+
+class SwapOrchestrator:
+    """Orchestrates swap detection, price fetching, and notifications."""
+    
+    def __init__(
+        self,
+        watcher: SwapWatcher,
+        price_fetcher: PriceFetcher,
+        notifier: NotificationManager,
+        database: Database,
+        enable_health_server: bool = True
+    ):
+        """Initialize the orchestrator."""
+        self.watcher = watcher
+        self.price_fetcher = price_fetcher
+        self.notifier = notifier
+        self.db = database
+        self.running = False
+        self._tasks = []
+        self.health_server = HealthServer() if enable_health_server else None
+        
+    async def start(self):
+        """Start the orchestrator."""
+        self.running = True
+        logger.info("Starting swap orchestrator")
+        
+        # Start health server
+        if self.health_server:
+            await self.health_server.start()
+            self.health_server.update_status(
+                started_at=datetime.utcnow().isoformat(),
+                watcher_running=True,
+                swaps_processed=0
+            )
+        
+        # Start background tasks
+        self._tasks = [
+            asyncio.create_task(self.watcher.start()),
+            asyncio.create_task(self._process_pending_swaps()),
+            asyncio.create_task(self._monitor_swap_updates()),
+        ]
+        
+        # Wait for tasks
+        try:
+            await asyncio.gather(*self._tasks)
+        except Exception as e:
+            logger.error("Orchestrator task failed", error=str(e))
+            raise
+        
+    async def stop(self):
+        """Stop the orchestrator."""
+        self.running = False
+        logger.info("Stopping swap orchestrator")
+        
+        # Cancel tasks
+        for task in self._tasks:
+            task.cancel()
+            
+        # Wait for tasks to complete
+        await asyncio.gather(*self._tasks, return_exceptions=True)
+        
+        # Stop components
+        await self.watcher.stop()
+        
+        # Stop health server
+        if self.health_server:
+            await self.health_server.stop()
+        
+        logger.info("Swap orchestrator stopped")
+        
+    async def _process_pending_swaps(self):
+        """Process pending swaps that need price data or notifications."""
+        while self.running:
+            try:
+                # Get swaps that need processing
+                pending_swaps = await self.db.get_pending_swaps()
+                
+                for swap in pending_swaps:
+                    # Add price data if missing
+                    if not swap.amount_xmr:
+                        await self._add_price_data(swap)
+                        
+                    # Send notification if not already sent
+                    if not swap.tweet_id and swap.amount_xmr:
+                        await self.notifier.notify_swap(swap)
+                        
+                await asyncio.sleep(30)  # Check every 30 seconds
+                
+            except Exception as e:
+                logger.error("Error processing pending swaps", error=str(e))
+                await asyncio.sleep(60)
+                
+    async def _monitor_swap_updates(self):
+        """Monitor for updates to existing swaps."""
+        while self.running:
+            try:
+                # This would check for redeems/refunds of pending swaps
+                # The watcher handles this via transaction monitoring
+                await asyncio.sleep(60)
+                
+            except Exception as e:
+                logger.error("Error monitoring swaps", error=str(e))
+                await asyncio.sleep(60)
+                
+    async def _add_price_data(self, swap: AtomicSwap):
+        """Add price data to a swap."""
+        try:
+            # Get current exchange rate
+            rate = await self.price_fetcher.get_btc_to_xmr_rate()
+            if rate:
+                swap.exchange_rate = rate
+                swap.amount_xmr = await self.price_fetcher.convert_btc_to_xmr(
+                    swap.amount_btc
+                )
+                swap.updated_at = datetime.now(timezone.utc)
+                await self.db.save_swap(swap)
+                
+                logger.info(
+                    "Added price data",
+                    swap_id=swap.swap_id,
+                    rate=rate,
+                    xmr_amount=swap.amount_xmr
+                )
+                
+        except Exception as e:
+            logger.error(
+                "Failed to add price data",
+                swap_id=swap.swap_id,
+                error=str(e)
+            )
+            
+    async def backfill(self, start_height: int, end_height: int):
+        """Backfill historical swaps."""
+        logger.info(
+            "Starting backfill",
+            start_height=start_height,
+            end_height=end_height
+        )
+        
+        # Run backfill
+        await self.watcher.backfill(start_height, end_height)
+        
+        # Process any found swaps
+        await self._process_pending_swaps()
+        
+        logger.info("Backfill complete")
+</file>
+
+<file path="comit_swap_bot/price_fetcher.py">
+"""Price fetching utilities for BTC/XMR conversion."""
+
+import asyncio
+from datetime import datetime, timedelta
+from decimal import Decimal
+from typing import Optional, Dict, Any
+
+import httpx
+import structlog
+from cachetools import TTLCache
+
+from .config import config
+
+logger = structlog.get_logger()
+
+
+class PriceFetcher:
+    """Fetches cryptocurrency prices from CoinGecko."""
+    
+    def __init__(self):
+        """Initialize the price fetcher."""
+        self.client = httpx.AsyncClient(
+            timeout=10.0,
+            headers={"Accept": "application/json"}
+        )
+        if config.coingecko_api_key:
+            self.client.headers["x-cg-pro-api-key"] = config.coingecko_api_key
+            
+        # Cache prices for 60 seconds
+        self._price_cache: TTLCache = TTLCache(maxsize=10, ttl=60)
+        
+    async def get_btc_to_xmr_rate(self) -> Optional[Decimal]:
+        """Get the current BTC to XMR exchange rate."""
+        cache_key = "btc_xmr_rate"
+        
+        # Check cache
+        if cache_key in self._price_cache:
+            return self._price_cache[cache_key]
+            
+        try:
+            # Fetch both BTC and XMR prices in USD
+            url = f"{config.coingecko_api_url}/simple/price"
+            params = {
+                "ids": "bitcoin,monero",
+                "vs_currencies": "usd",
+                "precision": 18
+            }
+            
+            response = await self.client.get(url, params=params)
+            response.raise_for_status()
+            data = response.json()
+            
+            btc_usd = Decimal(str(data["bitcoin"]["usd"]))
+            xmr_usd = Decimal(str(data["monero"]["usd"]))
+            
+            # Calculate BTC to XMR rate
+            rate = btc_usd / xmr_usd
+            
+            # Cache the result
+            self._price_cache[cache_key] = rate
+            
+            logger.info(
+                "Fetched exchange rate",
+                btc_usd=btc_usd,
+                xmr_usd=xmr_usd,
+                btc_to_xmr=rate
+            )
+            
+            return rate
+            
+        except Exception as e:
+            logger.error("Failed to fetch price", error=str(e))
+            return None
+            
+    async def convert_btc_to_xmr(self, btc_amount: Decimal) -> Optional[Decimal]:
+        """Convert BTC amount to XMR using current market rate."""
+        rate = await self.get_btc_to_xmr_rate()
+        if rate:
+            return btc_amount * rate
+        return None
+        
+    async def get_historical_rate(
+        self, 
+        timestamp: datetime
+    ) -> Optional[Decimal]:
+        """Get historical BTC to XMR rate for a specific timestamp."""
+        try:
+            # CoinGecko requires date in dd-mm-yyyy format
+            date_str = timestamp.strftime("%d-%m-%Y")
+            
+            url = f"{config.coingecko_api_url}/coins/bitcoin/history"
+            params = {"date": date_str}
+            
+            btc_response = await self.client.get(url, params=params)
+            btc_data = btc_response.json()
+            
+            url = f"{config.coingecko_api_url}/coins/monero/history"
+            xmr_response = await self.client.get(url, params=params)
+            xmr_data = xmr_response.json()
+            
+            btc_usd = Decimal(str(btc_data["market_data"]["current_price"]["usd"]))
+            xmr_usd = Decimal(str(xmr_data["market_data"]["current_price"]["usd"]))
+            
+            return btc_usd / xmr_usd
+            
+        except Exception as e:
+            logger.error(
+                "Failed to fetch historical price",
+                timestamp=timestamp,
+                error=str(e)
+            )
+            return None
+            
+    async def close(self):
+        """Close the HTTP client."""
+        await self.client.aclose()
+</file>
+
+<file path="comit_swap_bot/swap_watcher.py">
+"""Core swap detection engine."""
+
+import asyncio
+import json
+import re
+from datetime import datetime, timezone
+from decimal import Decimal
+from typing import Optional, Dict, Any, List, Set
+
+import httpx
+import structlog
+import websockets
+from bitcoin.core import CScript, COIN
+from bitcoin.core.script import (
+    OP_IF, OP_ELSE, OP_ENDIF, OP_EQUALVERIFY,
+    OP_CHECKSIG, OP_DUP, OP_HASH160,
+    OP_CHECKLOCKTIMEVERIFY, OP_DROP, OP_SHA256
+)
+
+from .config import config
+from .models import (
+    HTLCScript, HTLCTransaction, HTLCType,
+    AtomicSwap, SwapState, Transaction
+)
+from .database import Database
+
+logger = structlog.get_logger()
+
+
+class SwapWatcher:
+    """Watches for atomic swap transactions on the Bitcoin network."""
+    
+    # HTLC script pattern for COMIT swaps
+    # OP_IF
+    #   OP_SHA256 <secret_hash> OP_EQUALVERIFY
+    #   OP_DUP OP_HASH160 <recipient_pubkey_hash> OP_EQUALVERIFY OP_CHECKSIG
+    # OP_ELSE
+    #   <timelock> OP_CHECKLOCKTIMEVERIFY OP_DROP
+    #   OP_DUP OP_HASH160 <sender_pubkey_hash> OP_EQUALVERIFY OP_CHECKSIG
+    # OP_ENDIF
+    
+    HTLC_PATTERN = re.compile(
+        rb"\x63"  # OP_IF
+        rb"\xa8\x20(.{32})\x88"  # OP_SHA256 <32-byte secret_hash> OP_EQUALVERIFY
+        rb"\x76\xa9\x14(.{20})\x88\xac"  # OP_DUP OP_HASH160 <20-byte recipient_pubkey_hash> OP_EQUALVERIFY OP_CHECKSIG
+        rb"\x67"  # OP_ELSE
+        rb"(.{1,5})\xb1\x75"  # <timelock> OP_CHECKLOCKTIMEVERIFY OP_DROP (1-5 bytes for timelock)
+        rb"\x76\xa9\x14(.{20})\x88\xac"  # OP_DUP OP_HASH160 <20-byte sender_pubkey_hash> OP_EQUALVERIFY OP_CHECKSIG
+        rb"\x68"  # OP_ENDIF
+        , re.DOTALL  # Allow . to match newlines
+    )
+    
+    # Alternative pattern for different COMIT implementations
+    HTLC_PATTERN_ALT = re.compile(
+        rb"\x63"  # OP_IF
+        rb"\xa8\x20(.{32})\x88"  # OP_SHA256 <secret_hash> OP_EQUALVERIFY  
+        rb"\x76\xa9\x14(.{20})\x88\xac"  # OP_DUP OP_HASH160 <recipient> OP_EQUALVERIFY OP_CHECKSIG
+        rb"\x67"  # OP_ELSE
+        rb"(.{2,9})\xb1\x75"  # <timelock> OP_CHECKLOCKTIMEVERIFY OP_DROP (more flexible timelock size)
+        rb"\x76\xa9\x14(.{20})\x88\xac"  # OP_DUP OP_HASH160 <sender> OP_EQUALVERIFY OP_CHECKSIG  
+        rb"\x68"  # OP_ENDIF
+        , re.DOTALL
+    )
+    
+    def __init__(self, database: Database):
+        """Initialize the swap watcher."""
+        self.db = database
+        self.client = httpx.AsyncClient(timeout=30.0)
+        self.watching = False
+        self._watched_addresses: Set[str] = set()
+        self._pending_htlcs: Dict[str, HTLCTransaction] = {}
+        
+    async def start(self):
+        """Start watching for swaps."""
+        self.watching = True
+        logger.info("Starting swap watcher")
+        
+        if config.use_mempool_api:
+            await self._watch_mempool_ws()
+        else:
+            await self._watch_bitcoin_rpc()
+            
+    async def stop(self):
+        """Stop watching for swaps."""
+        self.watching = False
+        await self.client.aclose()
+        logger.info("Stopped swap watcher")
+        
+    async def _watch_mempool_ws(self):
+        """Watch for transactions using Mempool.space WebSocket."""
+        retry_count = 0
+        max_retries = 5
+        
+        while self.watching and retry_count < max_retries:
+            try:
+                async with websockets.connect(
+                    config.mempool_ws_url,
+                    ping_interval=20,
+                    ping_timeout=10,
+                    close_timeout=10
+                ) as ws:
+                    logger.info("Connected to Mempool WebSocket")
+                    retry_count = 0  # Reset on successful connection
+                    
+                    # Subscribe to both mempool transactions and blocks
+                    await ws.send(json.dumps({
+                        "action": "want", 
+                        "data": ["mempool-blocks", "live-2h-chart"]
+                    }))
+                    
+                    while self.watching:
+                        try:
+                            message = await asyncio.wait_for(ws.recv(), timeout=30)
+                            data = json.loads(message)
+                            
+                            # Process mempool blocks (contains new transactions)
+                            if data.get("mempool-blocks"):
+                                for block in data["mempool-blocks"]:
+                                    for tx in block.get("transactions", []):
+                                        await self._process_transaction(tx["txid"])
+                            
+                            # Process individual transactions from live feed
+                            elif data.get("tx"):
+                                await self._process_transaction(data["tx"]["txid"])
+                                
+                        except asyncio.TimeoutError:
+                            # Send ping to keep connection alive
+                            await ws.ping()
+                        except websockets.exceptions.ConnectionClosed:
+                            logger.warning("WebSocket connection closed, will retry")
+                            break
+                            
+            except Exception as e:
+                retry_count += 1
+                logger.error(
+                    "WebSocket error", 
+                    error=str(e), 
+                    retry_count=retry_count,
+                    max_retries=max_retries
+                )
+                if retry_count < max_retries:
+                    await asyncio.sleep(min(5 * retry_count, 30))  # Exponential backoff
+                else:
+                    logger.error("Max WebSocket retries exceeded, stopping watcher")
+                    self.watching = False
+                    
+    async def _watch_bitcoin_rpc(self):
+        """Watch for transactions using Bitcoin RPC."""
+        # Implementation for Bitcoin RPC monitoring
+        # This would require zmq or polling getrawmempool
+        raise NotImplementedError("Bitcoin RPC watching not yet implemented")
+        
+    async def _process_transaction(self, txid: str):
+        """Process a transaction to check if it's part of an atomic swap."""
+        try:
+            tx_data = await self._get_transaction(txid)
+            if not tx_data:
+                return
+                
+            # Check each output for HTLC pattern
+            for idx, output in enumerate(tx_data.get("vout", [])):
+                if htlc_script := self._detect_htlc_script(output):
+                    await self._handle_htlc_detection(txid, idx, output, htlc_script)
+                    
+            # Check if this spends any watched HTLCs
+            for input_data in tx_data.get("vin", []):
+                if spent_txid := input_data.get("txid"):
+                    if spent_txid in self._pending_htlcs:
+                        await self._handle_htlc_spend(txid, spent_txid, input_data)
+                        
+        except Exception as e:
+            logger.error("Error processing transaction", txid=txid, error=str(e))
+            
+    async def _get_transaction(self, txid: str) -> Optional[Dict[str, Any]]:
+        """Fetch transaction data from Mempool API."""
+        try:
+            url = f"{config.mempool_api_url}/tx/{txid}"
+            response = await self.client.get(url)
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            logger.error("Failed to fetch transaction", txid=txid, error=str(e))
+            return None
+            
+    def _detect_htlc_script(self, output: Dict[str, Any]) -> Optional[HTLCScript]:
+        """Detect if an output contains a COMIT HTLC script."""
+        script_hex = output.get("scriptPubKey", {}).get("hex", "")
+        if not script_hex:
+            return None
+            
+        script_bytes = bytes.fromhex(script_hex)
+        
+        # Try primary pattern first
+        match = self.HTLC_PATTERN.match(script_bytes)
+        if not match:
+            # Try alternative pattern
+            match = self.HTLC_PATTERN_ALT.match(script_bytes)
+            
+        if match:
+            secret_hash = match.group(1).hex()
+            recipient_pubkey_hash = match.group(2).hex()
+            timelock_bytes = match.group(3)
+            sender_pubkey_hash = match.group(4).hex()
+            
+            # Decode timelock (little-endian, handle variable length)
+            try:
+                timelock = int.from_bytes(timelock_bytes, byteorder='little')
+                
+                # Validate timelock is reasonable (not too far in future)
+                if timelock > 2147483647:  # Max valid timestamp
+                    logger.debug("Invalid timelock detected", timelock=timelock)
+                    return None
+                    
+            except Exception as e:
+                logger.debug("Failed to decode timelock", error=str(e))
+                return None
+            
+            return HTLCScript(
+                secret_hash=secret_hash,
+                recipient_pubkey_hash=recipient_pubkey_hash,
+                sender_pubkey_hash=sender_pubkey_hash,
+                timelock=timelock
+            )
+        return None
+        
+    async def _handle_htlc_detection(
+        self, 
+        txid: str, 
+        output_idx: int,
+        output: Dict[str, Any],
+        htlc_script: HTLCScript
+    ):
+        """Handle detection of a new HTLC."""
+        amount_sats = int(output["value"] * COIN)
+        
+        htlc_tx = HTLCTransaction(
+            txid=txid,
+            version=2,  # Will be updated with full tx data
+            locktime=0,
+            size=0,
+            weight=0,
+            htlc_type=HTLCType.LOCK,
+            htlc_script=htlc_script,
+            amount_sats=amount_sats,
+            output_index=output_idx,
+            block_height=None,
+            confirmations=0
+        )
+        
+        # Store in pending HTLCs
+        self._pending_htlcs[txid] = htlc_tx
+        
+        # Create swap record
+        swap = AtomicSwap(
+            swap_id=f"{txid}:{output_idx}",
+            lock_tx=htlc_tx,
+            state=SwapState.LOCKED,
+            amount_btc=Decimal(amount_sats) / COIN,
+            created_at=datetime.now(timezone.utc),
+            updated_at=datetime.now(timezone.utc)
+        )
+        
+        await self.db.save_swap(swap)
+        logger.info("Detected new HTLC", swap_id=swap.swap_id, amount_btc=swap.amount_btc)
+        
+    async def _handle_htlc_spend(
+        self,
+        spending_txid: str,
+        spent_txid: str,
+        input_data: Dict[str, Any]
+    ):
+        """Handle spending of an HTLC (redeem or refund)."""
+        htlc = self._pending_htlcs.get(spent_txid)
+        if not htlc:
+            return
+            
+        # Determine if this is a redeem or refund
+        witness = input_data.get("witness", [])
+        if len(witness) >= 2:
+            # Check if there's a secret in the witness
+            if len(witness[1]) == 64:  # 32-byte secret in hex
+                htlc_type = HTLCType.REDEEM
+                secret = witness[1]
+            else:
+                htlc_type = HTLCType.REFUND
+                secret = None
+        else:
+            htlc_type = HTLCType.REFUND
+            secret = None
+            
+        # Update swap record
+        swap = await self.db.get_swap_by_lock_txid(spent_txid)
+        if swap:
+            if htlc_type == HTLCType.REDEEM:
+                swap.state = SwapState.REDEEMED
+                swap.redeem_tx = HTLCTransaction(
+                    txid=spending_txid,
+                    version=2,
+                    locktime=0,
+                    size=0,
+                    weight=0,
+                    htlc_type=HTLCType.REDEEM,
+                    amount_sats=htlc.amount_sats,
+                    output_index=0,
+                    secret=secret
+                )
+            else:
+                swap.state = SwapState.REFUNDED
+                swap.refund_tx = HTLCTransaction(
+                    txid=spending_txid,
+                    version=2,
+                    locktime=0,
+                    size=0,
+                    weight=0,
+                    htlc_type=HTLCType.REFUND,
+                    amount_sats=htlc.amount_sats,
+                    output_index=0
+                )
+                
+            swap.updated_at = datetime.now(timezone.utc)
+            await self.db.save_swap(swap)
+            
+            logger.info(
+                "HTLC spent",
+                swap_id=swap.swap_id,
+                spend_type=htlc_type.value,
+                spending_tx=spending_txid
+            )
+            
+        # Remove from pending
+        del self._pending_htlcs[spent_txid]
+        
+    async def check_transaction(self, txid: str) -> Optional[AtomicSwap]:
+        """Check if a specific transaction is part of an atomic swap."""
+        await self._process_transaction(txid)
+        return await self.db.get_swap_by_lock_txid(txid)
+        
+    async def backfill(self, start_height: int, end_height: int):
+        """Backfill historical swaps between block heights."""
+        logger.info(
+            "Starting backfill",
+            start_height=start_height,
+            end_height=end_height
+        )
+        
+        for height in range(start_height, end_height + 1):
+            try:
+                # Get block hash
+                url = f"{config.mempool_api_url}/block-height/{height}"
+                response = await self.client.get(url)
+                block_hash = response.text.strip()
+                
+                # Get block transactions
+                url = f"{config.mempool_api_url}/block/{block_hash}/txids"
+                response = await self.client.get(url)
+                txids = response.json()
+                
+                # Process each transaction
+                for txid in txids:
+                    await self._process_transaction(txid)
+                    await asyncio.sleep(0.1)  # Rate limiting
+                    
+                logger.info("Processed block", height=height, tx_count=len(txids))
+                
+            except Exception as e:
+                logger.error("Error processing block", height=height, error=str(e))
+                
+        logger.info("Backfill complete")
+</file>
+
+<file path="DEPLOYMENT.md">
+# Deployment Guide
+
+This guide covers various deployment options for the COMIT Swap Bot.
+
+## Prerequisites
+
+- Twitter Developer Account with API credentials
+- (Optional) CoinGecko API key for higher rate limits
+- Docker and Docker Compose (for containerized deployment)
+- Python 3.12+ (for direct deployment)
+
+## Configuration
+
+### Environment Variables
+
+Create a `.env` file with your configuration:
+
+```bash
+# Twitter API (Required)
+TWITTER_API_KEY=your_api_key
+TWITTER_API_SECRET=your_api_secret
+TWITTER_ACCESS_TOKEN=your_access_token
+TWITTER_ACCESS_TOKEN_SECRET=your_access_token_secret
+
+# Optional
+COINGECKO_API_KEY=your_coingecko_key
+LOG_LEVEL=INFO
+
+# Use Mempool.space API (recommended)
+USE_MEMPOOL_API=true
+</file>
+
+<file path="docker-compose.yml">
+version: '3.8'
+
+services:
+  swapbot:
+    build: .
+    container_name: comit-swap-bot
+    restart: unless-stopped
+    ports:
+      - "8080:8080"  # Health check endpoint
+    environment:
+      # Bitcoin Configuration
+      - USE_MEMPOOL_API=true
+      - MEMPOOL_API_URL=https://mempool.space/api
+      
+      # Twitter Configuration (set these in .env file)
+      - TWITTER_API_KEY=${TWITTER_API_KEY}
+      - TWITTER_API_SECRET=${TWITTER_API_SECRET}
+      - TWITTER_ACCESS_TOKEN=${TWITTER_ACCESS_TOKEN}
+      - TWITTER_ACCESS_TOKEN_SECRET=${TWITTER_ACCESS_TOKEN_SECRET}
+      
+      # Optional CoinGecko API key
+      - COINGECKO_API_KEY=${COINGECKO_API_KEY:-}
+      
+      # Logging
+      - LOG_LEVEL=INFO
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    volumes:
+      - ./data:/app/data
+    networks:
+      - swapbot-network
+
+  # Optional: Local Bitcoin node
+  # bitcoin:
+  #   image: ruimarinho/bitcoin-core:latest
+  #   container_name: bitcoin-node
+  #   restart: unless-stopped
+  #   ports:
+  #     - "8332:8332"
+  #   volumes:
+  #     - bitcoin-data:/home/bitcoin/.bitcoin
+  #   command: >
+  #     -regtest
+  #     -server
+  #     -rpcuser=swapbot
+  #     -rpcpassword=swapbot123
+  #     -rpcallowip=0.0.0.0/0
+  #     -rpcbind=0.0.0.0
+  #   networks:
+  #     - swapbot-network
+
+networks:
+  swapbot-network:
+    driver: bridge
+
+volumes:
+  bitcoin-data:
+</file>
+
+<file path="Dockerfile">
+# Multi-stage build for smaller final image
+FROM python:3.12-slim as builder
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    make \
+    libssl-dev \
+    libffi-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create virtual environment
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Copy requirements
+COPY pyproject.toml README.md /app/
+WORKDIR /app
+
+# Install dependencies
+RUN pip install --upgrade pip wheel
+RUN pip install -e .
+
+# Final stage
+FROM python:3.12-slim
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y \
+    libssl-dev \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy virtual environment from builder
+COPY --from=builder /opt/venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Create non-root user
+RUN useradd -m -u 1000 swapbot
+
+# Copy application
+COPY --chown=swapbot:swapbot . /app
+WORKDIR /app
+
+# Install the package
+RUN pip install -e .
+
+# Switch to non-root user
+USER swapbot
+
+# Create data directory
+RUN mkdir -p /app/data
+
+# Expose health check port
+EXPOSE 8080
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD python -c "import httpx; httpx.get('http://localhost:8080/health')" || exit 1
+
+# Default command
+CMD ["python", "-m", "comit_swap_bot.cli", "watch"]
+</file>
+
+<file path="LICENSE">
+MIT License
+
+Copyright (c) 2025 JPShag
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+</file>
+
+<file path="pyproject.toml">
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+</file>
+
+<file path="README.md">
+# COMIT Swap Bot 🤖
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/downloads/)
+[![CI](https://github.com/JPShag/comit-swap-bot/actions/workflows/ci.yml/badge.svg)](https://github.com/JPShag/comit-swap-bot/actions/workflows/ci.yml)
+[![Coverage](https://img.shields.io/badge/coverage-85%25-green.svg)]()
+
+A Twitter bot that detects and tweets COMIT BTC⇆XMR atomic swaps in real-time.
+
+## Features
+
+- 🔍 Detects HTLC patterns specific to COMIT atomic swaps
+- 📊 Real-time BTC to XMR conversion using market rates
+- 🐦 Automatic tweeting of swap transactions
+- 🔌 Extensible notification system (Twitter, Apprise)
+- 🏗️ Object-oriented design for chain-agnostic support
+- 🚀 Docker support for easy deployment
+
+## Installation
+
+### Using Docker (Recommended)
+
+```bash
+docker pull ghcr.io/jpshag/comit-swap-bot:latest
+docker run -d --name comit-bot \
+  -e TWITTER_API_KEY=your_key \
+  -e TWITTER_API_SECRET=your_secret \
+  -e TWITTER_ACCESS_TOKEN=your_token \
+  -e TWITTER_ACCESS_TOKEN_SECRET=your_token_secret \
+  ghcr.io/jpshag/comit-swap-bot:latest
+</file>
+
+<file path="requirements.txt">
+# Core dependencies
+structlog>=23.0.0
+httpx>=0.24.0
+websockets>=11.0.0
+tweepy>=4.14.0
+apprise>=1.4.0
+aiohttp>=3.8.0
+cachetools>=5.3.0
+
+# Bitcoin library
+python-bitcoinlib>=0.12.0
+
+# Database
+aiosqlite>=0.19.0
+sqlalchemy>=2.0.0
+
+# Command line interface  
+click>=8.1.0
+
+# Data validation
+pydantic>=2.0.0
+
+# Testing
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+
+# Development
+black>=23.0.0
+isort>=5.12.0
+mypy>=1.4.0
+</file>
+
+<file path="setup.py">
+from setuptools import setup, find_packages
+
+setup(
+    name="comit_swap_bot",
+    version="0.1.0",
+    description="COMIT BTC⇆XMR atomic swap monitoring bot",
+    packages=find_packages(),
+    python_requires=">=3.8",
+    install_requires=[
+        "structlog>=23.0.0",
+        "httpx>=0.24.0",
+        "websockets>=11.0.0",
+        "tweepy>=4.14.0",
+        "apprise>=1.4.0",
+        "aiohttp>=3.8.0",
+        "cachetools>=5.3.0",
+        "python-bitcoinlib>=0.12.0",
+        "aiosqlite>=0.19.0",
+        "sqlalchemy>=2.0.0",
+        "click>=8.1.0",
+        "pydantic>=2.0.0",
+        "python-dotenv>=1.0.0",
+        "pytest>=7.4.0",
+        "pytest-asyncio>=0.21.0",
+        "pytest-mock>=3.11.0",
+    ],
+)
+</file>
+
+<file path="tests/test_notifiers.py">
+"""Tests for notification system."""
+
+import pytest
+from unittest.mock import Mock, AsyncMock, patch
+from datetime import datetime, timezone
+from decimal import Decimal
+
+from comit_swap_bot.models import AtomicSwap, SwapState, HTLCTransaction, HTLCType
+from comit_swap_bot.notifiers import TwitterNotifier, ConsoleNotifier, SwapNotification
+
+
+@pytest.fixture
+def sample_swap():
+    """Create a sample swap for testing."""
+    return AtomicSwap(
+        swap_id="test_swap_123",
+        lock_tx=HTLCTransaction(
+            txid="abc123def456789",
+            version=2,
+            locktime=0,
+            size=250,
+            weight=1000,
+            htlc_type=HTLCType.LOCK,
+            amount_sats=10000000,  # 0.1 BTC
+            output_index=0
+        ),
+        state=SwapState.LOCKED,
+        amount_btc=Decimal("0.1"),
+        amount_xmr=Decimal("3.85"),
+        exchange_rate=Decimal("38.5"),
+        created_at=datetime(2025, 5, 29, 12, 0, 0, tzinfo=timezone.utc),
+        updated_at=datetime(2025, 5, 29, 12, 0, 0, tzinfo=timezone.utc)
+    )
+
+
+class TestTwitterNotifier:
+    """Test Twitter notification functionality."""
+    
+    @pytest.mark.asyncio
+    async def test_tweet_formatting(self, sample_swap):
+        """Test tweet message formatting."""
+        with patch('comit_swap_bot.notifiers.config') as mock_config:
+            mock_config.twitter_api_key = "test_key"
+            mock_config.twitter_api_secret = "test_secret"
+            mock_config.twitter_access_token = "test_token"
+            mock_config.twitter_access_token_secret = "test_token_secret"
+            
+            notifier = TwitterNotifier()
+            message = notifier.format_swap_message(sample_swap)
+            
+            assert "🔄 New BTC⇆XMR Atomic Swap!" in message
+            assert "abc123def456789" in message
+            assert "0.10000000 BTC" in message
+            assert "3.8500 XMR" in message
+            assert "1 BTC = 38.5000 XMR" in message
+            assert "#AtomicSwap" in message
+            assert len(message) <= 280  # Twitter character limit
+            
+    @pytest.mark.asyncio
+    async def test_tweet_success(self, sample_swap):
+        """Test successful tweet posting."""
+        with patch('comit_swap_bot.notifiers.config') as mock_config:
+            mock_config.twitter_api_key = "test_key"
+            mock_config.twitter_api_secret = "test_secret"
+            mock_config.twitter_access_token = "test_token"
+            mock_config.twitter_access_token_secret = "test_token_secret"
+            
+            with patch('comit_swap_bot.notifiers.tweepy.Client') as mock_client:
+                mock_instance = Mock()
+                mock_instance.create_tweet.return_value = Mock(
+                    data={"id": "1234567890"}
+                )
+                mock_client.return_value = mock_instance
+                
+                notifier = TwitterNotifier()
+                notification = SwapNotification(
+                    swap=sample_swap,
+                    message="Test notification"
+                )
+                
+                result = await notifier.notify(notification)
+                
+                assert result is True
+                mock_instance.create_tweet.assert_called_once()
+
+
+class TestConsoleNotifier:
+    """Test console notification functionality."""
+    
+    @pytest.mark.asyncio
+    async def test_console_output(self, sample_swap, capsys):
+        """Test console notification output."""
+        notifier = ConsoleNotifier()
+        notification = SwapNotification(
+            swap=sample_swap,
+            message="Test notification"
+        )
+        
+        result = await notifier.notify(notification)
+        
+        assert result is True
+        captured = capsys.readouterr()
+        assert "New BTC⇆XMR Atomic Swap!" in captured.out
+        assert "abc123def456789" in captured.out
+</file>
+
+<file path="tests/test_price_fetcher.py">
+"""Tests for price fetcher."""
+
+import pytest
+import pytest_asyncio
+from decimal import Decimal
+from unittest.mock import Mock, patch
+
+from comit_swap_bot.price_fetcher import PriceFetcher
+
+
+@pytest_asyncio.fixture
+async def price_fetcher():
+    """Create price fetcher instance."""
+    fetcher = PriceFetcher()
+    yield fetcher
+    await fetcher.close()
+
+
+class TestPriceFetcher:
+    """Test price fetching functionality."""
+    
+    @pytest.mark.asyncio
+    async def test_get_btc_to_xmr_rate(self, price_fetcher):
+        """Test fetching BTC to XMR exchange rate."""
+        # Mock API response
+        mock_response = {
+            "bitcoin": {"usd": 50000},
+            "monero": {"usd": 200}
+        }
+        
+        with patch.object(price_fetcher.client, 'get') as mock_get:
+            # Create a proper mock response
+            mock_resp = Mock()
+            mock_resp.json.return_value = mock_response  # Synchronous json() method
+            mock_resp.raise_for_status.return_value = None  # Synchronous raise_for_status()
+            mock_get.return_value = mock_resp
+            
+            rate = await price_fetcher.get_btc_to_xmr_rate()
+            
+            assert rate == Decimal("250")  # 50000 / 200
+            
+    @pytest.mark.asyncio
+    async def test_convert_btc_to_xmr(self, price_fetcher):
+        """Test BTC to XMR conversion."""
+        # Mock the rate
+        with patch.object(price_fetcher, 'get_btc_to_xmr_rate') as mock_rate:
+            mock_rate.return_value = Decimal("38.5")
+            
+            xmr_amount = await price_fetcher.convert_btc_to_xmr(Decimal("0.1"))
+            
+            assert xmr_amount == Decimal("3.85")  # 0.1 * 38.5
+            
+    @pytest.mark.asyncio
+    async def test_caching(self, price_fetcher):
+        """Test that prices are cached."""
+        mock_response = {
+            "bitcoin": {"usd": 50000},
+            "monero": {"usd": 200}
+        }
+        
+        with patch.object(price_fetcher.client, 'get') as mock_get:
+            # Create a proper mock response
+            mock_resp = Mock()
+            mock_resp.json.return_value = mock_response  # Synchronous json() method
+            mock_resp.raise_for_status.return_value = None  # Synchronous raise_for_status()
+            mock_get.return_value = mock_resp
+            
+            # First call
+            rate1 = await price_fetcher.get_btc_to_xmr_rate()
+            # Second call (should use cache)
+            rate2 = await price_fetcher.get_btc_to_xmr_rate()
+            
+            assert rate1 == rate2
+            # Should only call API once due to caching
+            assert mock_get.call_count == 1
+</file>
+
+<file path="tests/test_swap_watcher.py">
+"""Tests for swap watcher."""
+
+import pytest
+import pytest_asyncio
+from datetime import datetime, timezone
+from decimal import Decimal
+
+from comit_swap_bot.models import HTLCScript, SwapState
+from comit_swap_bot.swap_watcher import SwapWatcher
+from comit_swap_bot.database import Database
+
+
+@pytest_asyncio.fixture
+async def db():
+    """Create test database."""
+    db = Database()
+    db.engine = db.engine.execution_options(
+        url="sqlite+aiosqlite:///:memory:"
+    )
+    await db.init()
+    yield db
+    await db.close()
+
+
+@pytest_asyncio.fixture
+async def watcher(db):
+    """Create swap watcher instance."""
+    return SwapWatcher(db)
+
+
+class TestSwapWatcher:
+    """Test swap watcher functionality."""
+    
+    def test_htlc_pattern_matching(self, watcher):
+        """Test HTLC script pattern detection."""
+        # Valid HTLC script bytes (simplified for testing)
+        # Use a reasonable timelock (e.g., 1703980800 = 2023-12-30 12:00:00)
+        timelock_bytes = (1703980800).to_bytes(4, byteorder='little')
+        valid_script = (
+            b"\x63"  # OP_IF
+            b"\xa8\x20" + b"a" * 32 + b"\x88"  # OP_SHA256 <secret_hash> OP_EQUALVERIFY
+            b"\x76\xa9\x14" + b"b" * 20 + b"\x88\xac"  # DUP HASH160 <recipient> EQUALVERIFY CHECKSIG
+            b"\x67"  # OP_ELSE
+            + timelock_bytes + b"\xb1\x75"  # <timelock> CHECKLOCKTIMEVERIFY DROP
+            + b"\x76\xa9\x14" + b"c" * 20 + b"\x88\xac"  # DUP HASH160 <sender> EQUALVERIFY CHECKSIG
+            + b"\x68"  # OP_ENDIF
+        )
+        
+        # Test detection
+        output = {"scriptPubKey": {"hex": valid_script.hex()}}
+        htlc = watcher._detect_htlc_script(output)
+        
+        assert htlc is not None
+        
+        # Test detection
+        output = {"scriptPubKey": {"hex": valid_script.hex()}}
+        htlc = watcher._detect_htlc_script(output)
+        
+        assert htlc is not None
+        assert htlc.secret_hash == "61" * 32  # hex of b"a" * 32
+        assert htlc.recipient_pubkey_hash == "62" * 20  # hex of b"b" * 20  
+        assert htlc.sender_pubkey_hash == "63" * 20  # hex of b"c" * 20
+        assert htlc.timelock > 0
+        
+    @pytest.mark.asyncio
+    async def test_swap_detection(self, watcher, db):
+        """Test full swap detection flow."""
+        # Mock transaction data
+        txid = "abc123"
+        timelock_bytes = (1703980800).to_bytes(4, byteorder='little')
+        output = {
+            "scriptPubKey": {
+                "hex": (
+                    b"\x63"
+                    b"\xa8\x20" + b"x" * 32 + b"\x88"
+                    b"\x76\xa9\x14" + b"y" * 20 + b"\x88\xac"
+                    b"\x67"
+                    + timelock_bytes + b"\xb1\x75"  # Valid timelock
+                    b"\x76\xa9\x14" + b"z" * 20 + b"\x88\xac"
+                    b"\x68"
+                ).hex()
+            },
+            "value": 0.1
+        }
+        
+        # Process HTLC detection
+        htlc_script = watcher._detect_htlc_script(output)
+        await watcher._handle_htlc_detection(txid, 0, output, htlc_script)
+        
+        # Verify swap was saved
+        swap = await db.get_swap_by_lock_txid(txid)
+        assert swap is not None
+        assert swap.lock_tx.txid == txid
+        assert swap.state == SwapState.LOCKED
+        assert swap.amount_btc == Decimal("0.1")
+        
+    @pytest.mark.asyncio
+    async def test_htlc_redeem_detection(self, watcher, db):
+        """Test HTLC redeem detection."""
+        # First create a locked HTLC
+        lock_txid = "lock123"
+        timelock_bytes = (1703980800).to_bytes(4, byteorder='little')
+        output = {
+            "scriptPubKey": {
+                "hex": (
+                    b"\x63"
+                    b"\xa8\x20" + b"s" * 32 + b"\x88"
+                    b"\x76\xa9\x14" + b"r" * 20 + b"\x88\xac"
+                    b"\x67"
+                    + timelock_bytes + b"\xb1\x75"  # Valid timelock
+                    b"\x76\xa9\x14" + b"s" * 20 + b"\x88\xac"
+                    b"\x68"
+                ).hex()
+            },
+            "value": 0.05
+        }
+        
+        htlc_script = watcher._detect_htlc_script(output)
+        await watcher._handle_htlc_detection(lock_txid, 0, output, htlc_script)
+        
+        # Add to pending HTLCs
+        swap = await db.get_swap_by_lock_txid(lock_txid)
+        watcher._pending_htlcs[lock_txid] = swap.lock_tx
+        
+        # Now simulate a redeem
+        redeem_txid = "redeem456"
+        input_data = {
+            "txid": lock_txid,
+            "witness": [
+                "signature_hex",
+                "s" * 64,  # 32-byte secret in hex
+                "pubkey_hex"
+            ]
+        }
+        
+        await watcher._handle_htlc_spend(redeem_txid, lock_txid, input_data)
+        
+        # Verify swap was updated
+        swap = await db.get_swap_by_lock_txid(lock_txid)
+        assert swap.state == SwapState.REDEEMED
+        assert swap.redeem_tx is not None
+        assert swap.redeem_tx.txid == redeem_txid
+        assert swap.redeem_tx.secret == "s" * 64
+</file>
+
+</files>
