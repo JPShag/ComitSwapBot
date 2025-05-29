@@ -1,6 +1,5 @@
 """Configuration management for the swap bot."""
 
-
 from pydantic import Field, validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 

@@ -6,7 +6,6 @@ The schema has evolved over time as I discovered edge cases - initially
 didn't account for partial redemptions or multiple refund attempts.
 """
 
-
 import structlog
 from sqlalchemy import Column, DateTime, Index, Numeric, String, Text, text
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
