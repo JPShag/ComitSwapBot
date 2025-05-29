@@ -141,7 +141,7 @@ class SwapAlert(BaseModel):
 
     swap_data: AtomicSwap = Field(description="The detected atomic swap")
     alert_message: str = Field(description="Formatted notification text")
-    hashtag_list: List[str] = Field(
+    hashtag_list: list[str] = Field(
         default_factory=lambda: ["AtomicSwap", "Bitcoin", "Monero", "COMIT", "DeFi"],
         description="Social media hashtags for maximum visibility",
     )

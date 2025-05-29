@@ -1,4 +1,4 @@
-[lint]
+[tool.lint]
 ignore = ["F401", "UP007", "UP035"]
 select = ["E", "W", "C"]
 mccabe = 10

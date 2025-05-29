@@ -7,7 +7,7 @@ didn't account for partial redemptions or multiple refund attempts.
 """
 
 
-from typing import Any, Optional
+
 
 import aiosqlite
 import structlog
@@ -122,7 +122,7 @@ class SwapDatabase:
             await session.merge(record)
             await session.commit()
 
-    async def get_swap(self, swap_id: str) -> Optional[AtomicSwap]:
+    async def get_swap(self, swap_id: str) -> AtomicSwap | None:
         """Get a swap by ID."""
         async with self.async_session() as session:
             result = await session.get(SwapRecord, swap_id)
@@ -130,7 +130,7 @@ class SwapDatabase:
                 return AtomicSwap.model_validate_json(result.data)
             return None
 
-    async def get_swap_by_lock_txid(self, txid: str) -> Optional[AtomicSwap]:
+    async def get_swap_by_lock_txid(self, txid: str) -> AtomicSwap | None:
         """Get a swap by its lock transaction ID."""
         async with self.async_session() as session:
             result = await session.execute(

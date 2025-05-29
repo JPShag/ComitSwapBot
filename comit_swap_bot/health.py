@@ -1,15 +1,15 @@
 """Simple health check HTTP server."""
 
-import asyncio
-import json
-from datetime import datetime
-from typing import Any, Dict
+
+from typing import Any
 
 import structlog
 from aiohttp import web
 
 logger = structlog.get_logger()
 
+
+from datetime import datetime
 
 class HealthServer:
     """Simple HTTP server for health checks."""
@@ -22,7 +22,7 @@ class HealthServer:
         self.app.router.add_get("/status", self.status_handler)
         self.runner = None
         self.site = None
-        self._status_data: Dict[str, Any] = {}
+        self._status_data: dict[str, Any] = {}
 
     async def health_handler(self, request):
         """Handle health check requests."""

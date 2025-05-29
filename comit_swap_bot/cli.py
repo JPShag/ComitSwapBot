@@ -5,8 +5,6 @@ import asyncio
 import signal
 import sys
 
-
-
 import click
 import structlog
 from structlog.stdlib import LoggerFactory
@@ -18,7 +16,6 @@ from .notifiers import NotificationManager
 from .orchestrator import SwapOrchestrator
 from .price_fetcher import PriceFetcher
 from .swap_watcher import SwapWatcher
-
 
 structlog.configure(
     processors=[
