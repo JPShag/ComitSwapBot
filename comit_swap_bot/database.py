@@ -161,6 +161,6 @@ class SwapDatabase:
                 text(
                     "UPDATE atomic_swaps SET notification_sent = :tweet_id WHERE swap_id = :swap_id"
                 ),
-                {"tweet_id": tweet_id, "swap_id": swap_id},
+                 {"tweet_id": tweet_id, "swap_id": swap_id},
             )
             await session.commit()
