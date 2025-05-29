@@ -1,4 +1,3 @@
-
 """Command-line interface for the swap bot."""
 
 import asyncio
@@ -11,7 +10,7 @@ from structlog.stdlib import LoggerFactory
 
 from . import __version__
 from .config import config
-from .database import Database
+from .database import SwapDatabase
 from .notifiers import NotificationManager
 from .orchestrator import SwapOrchestrator
 from .price_fetcher import PriceFetcher
@@ -55,7 +54,7 @@ def watch(check_interval: int):
 
     async def run():
         # Initialize components
-        db = Database()
+        db = SwapDatabase()
         await db.init()
 
         watcher = SwapWatcher(db)
@@ -95,7 +94,7 @@ def check(txid: str):
     """Check if a specific transaction is part of an atomic swap."""
 
     async def run():
-        db = Database()
+        db = SwapDatabase()
         await db.init()
 
         watcher = SwapWatcher(db)
@@ -123,7 +122,7 @@ def backfill(start_height: int, end_height: int):
     """Backfill historical swaps between block heights."""
 
     async def run():
-        db = Database()
+        db = SwapDatabase()
         await db.init()
 
         watcher = SwapWatcher(db)
@@ -148,7 +147,7 @@ def list_swaps(limit: int):
     """List recent atomic swaps."""
 
     async def run():
-        db = Database()
+        db = SwapDatabase()
         await db.init()
 
         swaps = await db.get_recent_swaps(limit)

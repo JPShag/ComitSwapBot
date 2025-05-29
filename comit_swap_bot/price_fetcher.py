@@ -1,9 +1,7 @@
 """Price fetching utilities for BTC/XMR conversion."""
 
-import asyncio
-from datetime import datetime, timedelta
+from datetime import datetime
 from decimal import Decimal
-from typing import Any, Dict, Optional
 
 import httpx
 import structlog
@@ -37,7 +35,7 @@ class PriceFetcher:
         # Cache prices for 60 seconds to respect rate limits
         self._price_cache: TTLCache = TTLCache(maxsize=10, ttl=60)
 
-    async def get_btc_to_xmr_rate(self) -> Optional[Decimal]:
+    async def get_btc_to_xmr_rate(self) -> Decimal | None:
         """Get the current BTC to XMR exchange rate."""
         cache_key = "btc_xmr_rate"
 
@@ -77,14 +75,14 @@ class PriceFetcher:
             logger.error("Failed to fetch price", error=str(e))
             return None
 
-    async def convert_btc_to_xmr(self, btc_amount: Decimal) -> Optional[Decimal]:
+    async def convert_btc_to_xmr(self, btc_amount: Decimal) -> Decimal | None:
         """Convert BTC amount to XMR using current market rate."""
         rate = await self.get_btc_to_xmr_rate()
         if rate:
             return btc_amount * rate
         return None
 
-    async def get_historical_rate(self, timestamp: datetime) -> Optional[Decimal]:
+    async def get_historical_rate(self, timestamp: datetime) -> Decimal | None:
         """Get historical BTC to XMR rate for a specific timestamp."""
         try:
             # CoinGecko requires date in dd-mm-yyyy format

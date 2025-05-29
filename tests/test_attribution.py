@@ -6,7 +6,6 @@ from decimal import Decimal
 import pytest
 
 from comit_swap_bot.attribution import attribution
-from comit_swap_bot.config import config
 from comit_swap_bot.models import AtomicSwap, HTLCTransaction, HTLCType, SwapState
 from comit_swap_bot.notifiers import TwitterNotifier
 

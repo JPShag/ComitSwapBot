@@ -1,6 +1,6 @@
 """Simple health check HTTP server."""
 
-
+from datetime import datetime
 from typing import Any
 
 import structlog
@@ -8,8 +8,6 @@ from aiohttp import web
 
 logger = structlog.get_logger()
 
-
-from datetime import datetime
 
 class HealthServer:
     """Simple HTTP server for health checks."""

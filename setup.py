@@ -1,4 +1,4 @@
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
 setup(
     name="comit_swap_bot",
@@ -19,7 +19,7 @@ setup(
         "sqlalchemy>=2.0.0",
         "click>=8.1.0",
         "pydantic>=2.0.0",
-        "pydantic-settings>=2.0.0",   # ← added
+        "pydantic-settings>=2.0.0",  # ← added
         "python-dotenv>=1.0.0",
         "pytest>=7.4.0",
         "pytest-asyncio>=0.21.0",

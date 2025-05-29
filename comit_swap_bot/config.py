@@ -1,6 +1,5 @@
 """Configuration management for the swap bot."""
 
-from typing import Optional
 
 from pydantic import Field, validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -19,10 +18,10 @@ class Config(BaseSettings):
     bitcoin_rpc_url: str = Field(
         default="http://localhost:8332", description="Bitcoin RPC URL"
     )
-    bitcoin_rpc_user: Optional[str] = Field(
+    bitcoin_rpc_user: str | None = Field(
         default=None, description="Bitcoin RPC username"
     )
-    bitcoin_rpc_pass: Optional[str] = Field(
+    bitcoin_rpc_pass: str | None = Field(
         default=None, description="Bitcoin RPC password"
     )
 
@@ -39,19 +38,19 @@ class Config(BaseSettings):
     )
 
     # Twitter Configuration
-    twitter_api_key: Optional[str] = Field(default=None, description="Twitter API Key")
-    twitter_api_secret: Optional[str] = Field(
+    twitter_api_key: str | None = Field(default=None, description="Twitter API Key")
+    twitter_api_secret: str | None = Field(
         default=None, description="Twitter API Secret"
     )
-    twitter_access_token: Optional[str] = Field(
+    twitter_access_token: str | None = Field(
         default=None, description="Twitter Access Token"
     )
-    twitter_access_token_secret: Optional[str] = Field(
+    twitter_access_token_secret: str | None = Field(
         default=None, description="Twitter Access Token Secret"
     )
 
     # CoinGecko Configuration
-    coingecko_api_key: Optional[str] = Field(
+    coingecko_api_key: str | None = Field(
         default=None, description="CoinGecko API Key (optional, for higher rate limits)"
     )
     coingecko_api_url: str = Field(

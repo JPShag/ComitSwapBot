@@ -1,20 +1,19 @@
 """Tests for swap watcher."""
 
-from datetime import datetime, timezone
 from decimal import Decimal
 
 import pytest
 import pytest_asyncio
 
-from comit_swap_bot.database import Database
-from comit_swap_bot.models import HTLCScript, SwapState
+from comit_swap_bot.database import SwapDatabase
+from comit_swap_bot.models import SwapState
 from comit_swap_bot.swap_watcher import SwapWatcher
 
 
 @pytest_asyncio.fixture
 async def db():
     """Create test database."""
-    db = Database()
+    db = SwapDatabase()
     db.engine = db.engine.execution_options(url="sqlite+aiosqlite:///:memory:")
     await db.init()
     yield db

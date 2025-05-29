@@ -7,27 +7,14 @@ didn't account for partial redemptions or multiple refund attempts.
 """
 
 
-
-
-import aiosqlite
 import structlog
-from sqlalchemy import (
-    Boolean,
-    Column,
-    DateTime,
-    Index,
-    Integer,
-    Numeric,
-    String,
-    Text,
-    text,
-)
+from sqlalchemy import Column, DateTime, Index, Numeric, String, Text, text
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
 from .config import config
-from .models import AtomicSwap, HTLCTransaction, SwapState
+from .models import AtomicSwap, SwapState
 
 logger = structlog.get_logger()
 Base = declarative_base()

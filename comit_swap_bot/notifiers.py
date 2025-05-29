@@ -2,8 +2,6 @@
 
 import asyncio
 from abc import ABC, abstractmethod
-from datetime import datetime
-from typing import Any, Dict, List, Optional
 
 import structlog
 import tweepy
@@ -111,7 +109,7 @@ class TwitterNotifier(Notifier):
 class AppriseNotifier(Notifier):
     """Multi-platform notification handler using Apprise."""
 
-    def __init__(self, urls: Optional[List[str]] = None):
+    def __init__(self, urls: list[str] | None = None):
         """Initialize Apprise with notification URLs."""
         self.apprise = Apprise()
 
@@ -168,7 +166,7 @@ class NotificationManager:
 
     def __init__(self):
         """Initialize notification manager."""
-        self.notifiers: List[Notifier] = []
+        self.notifiers: list[Notifier] = []
 
         # Add configured notifiers
         if config.enable_twitter:

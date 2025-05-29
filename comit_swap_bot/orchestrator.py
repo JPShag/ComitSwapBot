@@ -9,13 +9,12 @@ to unhandled websocket disconnections.
 
 import asyncio
 from datetime import datetime, timezone
-from typing import Optional
 
 import structlog
 
-from .database import Database
+from .database import SwapDatabase
 from .health import HealthServer
-from .models import AtomicSwap, SwapState
+from .models import AtomicSwap
 from .notifiers import NotificationManager
 from .price_fetcher import PriceFetcher
 from .swap_watcher import SwapWatcher
@@ -37,7 +36,7 @@ class SwapOrchestrator:
         mempool_watcher: SwapWatcher,
         price_service: PriceFetcher,
         notification_mgr: NotificationManager,
-        swap_db: Database,
+        swap_db: SwapDatabase,
         enable_health_server: bool = True,
     ):
         """

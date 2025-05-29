@@ -5,35 +5,16 @@ import json
 import re
 from datetime import datetime, timezone
 from decimal import Decimal
-from typing import Any, Optional, Set
+from typing import Any
 
 import httpx
 import structlog
 import websockets
-from bitcoin.core import COIN, CScript
-from bitcoin.core.script import (
-    OP_CHECKLOCKTIMEVERIFY,
-    OP_CHECKSIG,
-    OP_DROP,
-    OP_DUP,
-    OP_ELSE,
-    OP_ENDIF,
-    OP_EQUALVERIFY,
-    OP_HASH160,
-    OP_IF,
-    OP_SHA256,
-)
+from bitcoin.core import COIN
 
 from .config import config
-from .database import Database
-from .models import (
-    AtomicSwap,
-    HTLCScript,
-    HTLCTransaction,
-    HTLCType,
-    SwapState,
-    Transaction,
-)
+from .database import SwapDatabase
+from .models import AtomicSwap, HTLCScript, HTLCTransaction, HTLCType, SwapState
 
 logger = structlog.get_logger()
 
@@ -73,12 +54,12 @@ class SwapWatcher:
         re.DOTALL,
     )
 
-    def __init__(self, database: Database):
+    def __init__(self, database: SwapDatabase):
         """Initialize the swap watcher."""
         self.db = database
         self.client = httpx.AsyncClient(timeout=30.0)
         self.watching = False
-        self._watched_addresses: Set[str] = set()
+        self._watched_addresses: set[str] = set()
         self._pending_htlcs: dict[str, HTLCTransaction] = {}
 
     async def start(self):
@@ -194,7 +175,7 @@ class SwapWatcher:
         except Exception as e:
             logger.error("Error processing transaction", txid=txid, error=str(e))
 
-    async def _get_transaction(self, txid: str) -> Optional[dict[str, Any]]:
+    async def _get_transaction(self, txid: str) -> dict[str, Any] | None:
         """Fetch transaction data from Mempool API."""
         try:
             url = f"{config.mempool_api_url}/tx/{txid}"
@@ -205,7 +186,7 @@ class SwapWatcher:
             logger.error("Failed to fetch transaction", txid=txid, error=str(e))
             return None
 
-    def _detect_htlc_script(self, output: dict[str, Any]) -> Optional[HTLCScript]:
+    def _detect_htlc_script(self, output: dict[str, Any]) -> HTLCScript | None:
         """Detect if an output contains a COMIT HTLC script."""
         script_hex = output.get("scriptPubKey", {}).get("hex", "")
         if not script_hex:
@@ -352,7 +333,7 @@ class SwapWatcher:
         # Remove from pending
         del self._pending_htlcs[spent_txid]
 
-    async def check_transaction(self, txid: str) -> Optional[AtomicSwap]:
+    async def check_transaction(self, txid: str) -> AtomicSwap | None:
         """Check if a specific transaction is part of an atomic swap."""
         await self._process_transaction(txid)
         return await self.db.get_swap_by_lock_txid(txid)

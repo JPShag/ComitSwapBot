@@ -9,7 +9,6 @@ edge cases like partially redeemed swaps and malformed HTLC scripts.
 from datetime import datetime
 from decimal import Decimal
 from enum import Enum
-from typing import List, Optional
 
 from pydantic import BaseModel, Field
 
@@ -55,9 +54,9 @@ class Transaction(BaseModel):
     )
     byte_size: int = Field(description="Transaction size in bytes")
     weight_units: int = Field(description="BIP141 weight units for fee calculation")
-    fee_sats: Optional[Decimal] = Field(None, description="Transaction fee in satoshis")
-    block_height: Optional[int] = Field(None, description="Block height if confirmed")
-    block_time: Optional[datetime] = Field(
+    fee_sats: Decimal | None = Field(None, description="Transaction fee in satoshis")
+    block_height: int | None = Field(None, description="Block height if confirmed")
+    block_time: datetime | None = Field(
         None, description="Block timestamp if confirmed"
     )
     confirmation_count: int = Field(default=0, description="Number of confirmations")
@@ -72,12 +71,12 @@ class HTLCTransaction(Transaction):
     """
 
     htlc_classification: HTLCType
-    script_details: Optional[HTLCScript] = Field(
+    script_details: HTLCScript | None = Field(
         None, description="Parsed HTLC script components"
     )
     value_sats: int = Field(description="Output value in satoshis")
     output_index: int = Field(description="Index of the HTLC output")
-    revealed_secret: Optional[str] = Field(
+    revealed_secret: str | None = Field(
         None, description="32-byte secret for redeem transactions"
     )
 
@@ -95,29 +94,27 @@ class AtomicSwap(BaseModel):
     lock_transaction: HTLCTransaction = Field(
         description="Initial HTLC setup transaction"
     )
-    redeem_transaction: Optional[HTLCTransaction] = Field(
+    redeem_transaction: HTLCTransaction | None = Field(
         None, description="Secret reveal transaction"
     )
-    refund_transaction: Optional[HTLCTransaction] = Field(
+    refund_transaction: HTLCTransaction | None = Field(
         None, description="Timeout refund transaction"
     )
     current_state: SwapState = Field(description="Current lifecycle state")
 
     # Bitcoin amounts and pricing
     btc_amount: Decimal = Field(description="Amount in BTC (8 decimal places)")
-    xmr_amount: Optional[Decimal] = Field(
+    xmr_amount: Decimal | None = Field(
         None, description="Equivalent XMR amount at detection time"
     )
-    btc_xmr_rate: Optional[Decimal] = Field(
-        None, description="BTC/XMR exchange rate used"
-    )
+    btc_xmr_rate: Decimal | None = Field(None, description="BTC/XMR exchange rate used")
 
     # Timestamps
     detected_at: datetime = Field(description="When we first detected this swap")
     last_updated: datetime = Field(description="Last modification timestamp")
 
     # Notification tracking
-    notification_sent: Optional[str] = Field(
+    notification_sent: str | None = Field(
         None, description="Twitter tweet ID if posted"
     )
 
@@ -145,3 +142,10 @@ class SwapAlert(BaseModel):
         default_factory=lambda: ["AtomicSwap", "Bitcoin", "Monero", "COMIT", "DeFi"],
         description="Social media hashtags for maximum visibility",
     )
+
+
+class SwapNotification(BaseModel):
+    """Notification payload for detected swaps."""
+
+    swap: AtomicSwap = Field(description="The detected atomic swap")
+    message: str = Field(description="Notification message")

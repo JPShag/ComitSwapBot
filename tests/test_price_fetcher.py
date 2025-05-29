@@ -1,4 +1,3 @@
-
 """Tests for price fetcher."""
 
 from decimal import Decimal
@@ -18,8 +17,6 @@ async def price_fetcher():
     await fetcher.close()
 
 
-
-
 class TestPriceFetcher:
     """Test price fetching functionality."""
 
@@ -33,7 +30,9 @@ class TestPriceFetcher:
             # Create a proper mock response
             mock_resp = Mock()
             mock_resp.json.return_value = mock_response  # Synchronous json() method
-            mock_resp.raise_for_status.return_value = None  # Synchronous raise_for_status()
+            mock_resp.raise_for_status.return_value = (
+                None  # Synchronous raise_for_status()
+            )
             mock_get.return_value = mock_resp
 
             rate = await price_fetcher.get_btc_to_xmr_rate()
@@ -60,7 +59,9 @@ class TestPriceFetcher:
             # Create a proper mock response
             mock_resp = Mock()
             mock_resp.json.return_value = mock_response  # Synchronous json() method
-            mock_resp.raise_for_status.return_value = None  # Synchronous raise_for_status()
+            mock_resp.raise_for_status.return_value = (
+                None  # Synchronous raise_for_status()
+            )
             mock_get.return_value = mock_resp
 
             # First call
