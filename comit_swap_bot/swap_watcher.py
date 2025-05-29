@@ -223,7 +223,7 @@ class SwapWatcher:
                 secret_hash=secret_hash,
                 recipient_pubkey_hash=recipient_pubkey_hash,
                 sender_pubkey_hash=sender_pubkey_hash,
-                timelock=timelock,
+                timelock_height=timelock,
             )
         return None
 

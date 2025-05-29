@@ -15,22 +15,22 @@ def sample_swap():
     """Create a sample swap for testing."""
     return AtomicSwap(
         swap_id="test_swap_123",
-        lock_tx=HTLCTransaction(
+        lock_transaction=HTLCTransaction(
             txid="abc123def456789",
             version=2,
             locktime=0,
-            size=250,
-            weight=1000,
-            htlc_type=HTLCType.LOCK,
-            amount_sats=10000000,  # 0.1 BTC
+            byte_size=250,
+            weight_units=1000,
+            htlc_classification=HTLCType.LOCK,
+            value_sats=10000000,  # 0.1 BTC
             output_index=0,
         ),
-        state=SwapState.LOCKED,
-        amount_btc=Decimal("0.1"),
-        amount_xmr=Decimal("3.85"),
-        exchange_rate=Decimal("38.5"),
-        created_at=datetime(2025, 5, 29, 12, 0, 0, tzinfo=timezone.utc),
-        updated_at=datetime(2025, 5, 29, 12, 0, 0, tzinfo=timezone.utc),
+        current_state=SwapState.LOCKED,
+        btc_amount=Decimal("0.1"),
+        xmr_amount=Decimal("3.85"),
+        btc_xmr_rate=Decimal("38.5"),
+        detected_at=datetime(2025, 5, 29, 12, 0, 0, tzinfo=timezone.utc),
+        last_updated=datetime(2025, 5, 29, 12, 0, 0, tzinfo=timezone.utc),
     )
 
 

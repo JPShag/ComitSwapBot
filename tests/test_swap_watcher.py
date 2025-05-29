@@ -63,7 +63,7 @@ class TestSwapWatcher:
         assert htlc.secret_hash == "61" * 32  # hex of b"a" * 32
         assert htlc.recipient_pubkey_hash == "62" * 20  # hex of b"b" * 20
         assert htlc.sender_pubkey_hash == "63" * 20  # hex of b"c" * 20
-        assert htlc.timelock > 0
+        assert htlc.timelock_height > 0
 
     @pytest.mark.asyncio
     async def test_swap_detection(self, watcher, db):
