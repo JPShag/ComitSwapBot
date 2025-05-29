@@ -38,7 +38,8 @@ class TestSwapWatcher:
             b"\x63"  # OP_IF
             b"\xa8\x20" + b"a" * 32 + b"\x88"  # OP_SHA256 <secret_hash> OP_EQUALVERIFY
             b"\x76\xa9\x14"
-            + b"b" * 20
+            + b"b"
+            * 20
             + b"\x88\xac"  # DUP HASH160 <recipient> EQUALVERIFY CHECKSIG
             b"\x67"  # OP_ELSE
             + timelock_bytes
