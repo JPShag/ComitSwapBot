@@ -15,18 +15,26 @@ logger = structlog.get_logger()
 
 
 class PriceFetcher:
-    """Fetches cryptocurrency prices from CoinGecko."""
+    """
+    Fetches cryptocurrency prices from CoinGecko API.
+    
+    Price data provided by CoinGecko (https://www.coingecko.com)
+    Attribution required per CoinGecko API terms of service.
+    """
     
     def __init__(self):
-        """Initialize the price fetcher."""
+        """Initialize the price fetcher with CoinGecko API client."""
         self.client = httpx.AsyncClient(
             timeout=10.0,
-            headers={"Accept": "application/json"}
+            headers={
+                "Accept": "application/json",
+                "User-Agent": "COMIT-Swap-Bot/1.0 (Price attribution: CoinGecko)"
+            }
         )
         if config.coingecko_api_key:
             self.client.headers["x-cg-pro-api-key"] = config.coingecko_api_key
             
-        # Cache prices for 60 seconds
+        # Cache prices for 60 seconds to respect rate limits
         self._price_cache: TTLCache = TTLCache(maxsize=10, ttl=60)
         
     async def get_btc_to_xmr_rate(self) -> Optional[Decimal]:
@@ -60,10 +68,11 @@ class PriceFetcher:
             self._price_cache[cache_key] = rate
             
             logger.info(
-                "Fetched exchange rate",
+                "📊 Fetched exchange rate from CoinGecko",
                 btc_usd=btc_usd,
                 xmr_usd=xmr_usd,
-                btc_to_xmr=rate
+                btc_to_xmr=rate,
+                attribution="Price data by CoinGecko"
             )
             
             return rate

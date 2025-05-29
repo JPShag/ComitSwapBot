@@ -70,6 +70,16 @@ class Config(BaseSettings):
         description="CoinGecko API URL"
     )
     
+    # CoinGecko Attribution (required for compliance)
+    coingecko_attribution_text: str = Field(
+        default="Price data by CoinGecko",
+        description="Attribution text for CoinGecko data"
+    )
+    coingecko_attribution_url: str = Field(
+        default="https://www.coingecko.com?utm_source=comit-swap-bot&utm_medium=referral",
+        description="Attribution link for CoinGecko"
+    )
+    
     # Database Configuration
     database_url: str = Field(
         default="sqlite+aiosqlite:///swaps.db",

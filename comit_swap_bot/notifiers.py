@@ -24,20 +24,22 @@ class Notifier(ABC):
         pass
         
     def format_swap_message(self, swap: AtomicSwap) -> str:
-        """Format a swap into a notification message."""
+        """Format a swap into a notification message with proper attribution."""
         message_parts = [
             "🔄 New BTC⇆XMR Atomic Swap!",
             "",
-            f"📦 TX: {swap.lock_tx.txid[:16]}...",
-            f"💰 Amount: {swap.amount_btc:.8f} BTC",
+            f"📦 TX: {swap.lock_transaction.txid[:16]}...",
+            f"💰 Amount: {swap.btc_amount:.8f} BTC",
         ]
         
-        if swap.amount_xmr and swap.exchange_rate:
-            message_parts.append(f"   ≈ {swap.amount_xmr:.4f} XMR")
-            message_parts.append(f"📊 Rate: 1 BTC = {swap.exchange_rate:.4f} XMR")
+        if swap.xmr_amount and swap.btc_xmr_rate:
+            message_parts.append(f"   ≈ {swap.xmr_amount:.4f} XMR")
+            message_parts.append(f"📊 Rate: 1 BTC = {swap.btc_xmr_rate:.4f} XMR")
+            # Add CoinGecko attribution when price data is included
+            message_parts.append(f"💱 {config.coingecko_attribution_text}")
             
         message_parts.extend([
-            f"🕐 {swap.created_at.strftime('%Y-%m-%d %H:%M:%S')} UTC",
+            f"🕐 {swap.detected_at.strftime('%Y-%m-%d %H:%M:%S')} UTC",
             "",
             " ".join(f"#{tag}" for tag in ["AtomicSwap", "Bitcoin", "Monero"])
         ])
@@ -76,8 +78,8 @@ class TwitterNotifier(Notifier):
             if len(message) > 280:
                 # Truncate transaction ID if needed
                 message = message.replace(
-                    notification.swap.lock_tx.txid[:16],
-                    notification.swap.lock_tx.txid[:12]
+                    notification.swap.lock_transaction.txid[:16],
+                    notification.swap.lock_transaction.txid[:12]
                 )
                 
             # Tweet in a thread-safe way

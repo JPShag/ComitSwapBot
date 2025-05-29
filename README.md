@@ -28,3 +28,32 @@ docker run -d --name comit-bot \
   -e TWITTER_ACCESS_TOKEN=your_token \
   -e TWITTER_ACCESS_TOKEN_SECRET=your_token_secret \
   ghcr.io/jpshag/comit-swap-bot:latest
+```
+
+## Data Attribution
+
+This project uses cryptocurrency price data from:
+
+**CoinGecko** - [https://www.coingecko.com](https://www.coingecko.com?utm_source=comit-swap-bot&utm_medium=referral)
+- Price data by CoinGecko
+- Used for BTC/XMR exchange rate conversion
+- Free API with proper attribution as required
+
+**Mempool.space** - [https://mempool.space](https://mempool.space)
+- Bitcoin transaction and mempool data
+- Used for HTLC detection and monitoring
+
+## API Compliance
+
+We comply with all data provider terms of service:
+- CoinGecko attribution is included in all price-related notifications
+- Mempool.space API is used respectfully with appropriate rate limiting
+- All data sources are properly credited in outputs
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Disclaimer
+
+This bot is for educational and informational purposes. Atomic swap detection may not be 100% accurate. Always verify transactions independently.
